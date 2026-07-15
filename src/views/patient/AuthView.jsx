@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, User, Eye, EyeOff, ShieldCheck, Heart, Stethoscope, Loader2, ArrowRight, BadgeCheck } from 'lucide-react'
 import AuraHealthLogo from '../../components/AuraHealthLogo'
@@ -52,7 +52,7 @@ function AuthInput({ icon: Icon, type = 'text', placeholder, value, onChange, na
 }
 
 export default function AuthView() {
-    const { login, credentialLogin, credentialRegister, isLoading: contextLoading, authError, setAuthError } = useAuth()
+    const { loginWithGoogle, credentialLogin, credentialRegister, isLoading: contextLoading, authError, setAuthError } = useAuth()
     const [authMode, setAuthMode] = useState('signin')
     const [selectedRole, setSelectedRole] = useState('PATIENT')
     const [isLoading, setIsLoading] = useState(false)
@@ -63,13 +63,15 @@ export default function AuthView() {
     const isSignUp = authMode === 'signup'
     const loading = isLoading || contextLoading
 
-    const handleMockBypass = () => {
-        if (selectedRole === 'DOCTOR') {
-            login({ name: "Dr. Neha Patil", email: "nehapatil26102002@gmail.com", role: "DOCTOR" })
-        } else {
-            login({ name: "Neha Patil", email: "nehapatil26102002@gmail.com", role: "PATIENT" })
+    // Surface an OAuth failure the backend signalled via ?error= on the
+    // redirect-back, then strip the query so a refresh doesn't re-show it.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        if (params.has('error')) {
+            setAuthError('Google sign-in failed. Please try again or use email.')
+            window.history.replaceState({}, '', window.location.pathname)
         }
-    }
+    }, [setAuthError])
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -177,14 +179,15 @@ export default function AuthView() {
                     </div>
 
                     <button
-                        onClick={handleMockBypass}
+                        onClick={loginWithGoogle}
                         disabled={loading}
                         type="button"
-                        className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white hover:bg-zinc-100 text-zinc-900 
-                                   rounded-xl text-sm font-bold shadow-lg transition-all active:scale-[0.98] cursor-pointer mb-6"
+                        className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white hover:bg-zinc-100 text-zinc-900
+                                   rounded-xl text-sm font-bold shadow-lg transition-all active:scale-[0.98] cursor-pointer mb-6
+                                   disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loading ? <Loader2 style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, flexShrink: 0 }} className="animate-spin text-zinc-900" /> : <GoogleIcon />}
-                        <span>Continue with Google (Mock Bypass)</span>
+                        <GoogleIcon />
+                        <span>Continue with Google</span>
                     </button>
 
                     <div className="flex items-center gap-3 mb-6">

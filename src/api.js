@@ -38,12 +38,6 @@ export const api = {
     }),
     logout: () => request('/api/auth/logout', { method: 'POST' }),
 
-    // ── Dev-Only Mock Auth Bypass ───────────────────────────
-    oauthMockBypass: (data) => request('/api/auth/oauth-mock-bypass', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    }),
-
     // ── Patient Endpoints ───────────────────────────────────
     registerPatient: (data) => request('/api/patients/register', {
         method: 'POST',

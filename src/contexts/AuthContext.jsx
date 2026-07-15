@@ -120,34 +120,15 @@ export function AuthProvider({ children }) {
         setUser(prev => prev ? { ...prev, ...updates } : null)
     }, [])
 
-    // ── Mock Auth Bypass ───────────────────────────────────────
-    const mockAuthBypass = useCallback(async (payload) => {
-        setIsLoading(true)
-        setAuthError(null)
-        try {
-            const res = await fetch('/api/auth/oauth-mock-bypass', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                    email: payload.email,
-                    name: payload.name || 'Mock User',
-                    role: payload.role === 'doctor' ? 'DOCTOR' : 'PATIENT',
-                }),
-            })
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Mock bypass failed');
-            }
-            const data = await res.json()
-            setUser(normalizeUser(data.user))
-            return true
-        } catch (err) {
-            setAuthError(err.message || 'Mock bypass failed')
-            return false
-        } finally {
-            setIsLoading(false)
-        }
+    // ── Google OAuth (Spring Security redirect flow) ───────────
+    // Full-page navigation to the backend OAuth2 start endpoint. The
+    // backend redirects to Google, handles the callback, sets the HttpOnly
+    // JWT cookie, then redirects back to the frontend. checkSession() (run
+    // on app mount) then restores the user from that cookie.
+    // Relative path so the Spring Cloud Gateway routes /oauth2/** to the
+    // backend in production; the Vite dev proxy handles it locally.
+    const loginWithGoogle = useCallback(() => {
+        window.location.assign('/oauth2/authorization/google')
     }, [])
 
     const isPatient = user?.role === 'PATIENT'
@@ -165,7 +146,7 @@ export function AuthProvider({ children }) {
             login,
             credentialLogin,
             credentialRegister,
-            mockAuthBypass,
+            loginWithGoogle,
             logout,
             checkSession,
             updateProfile,

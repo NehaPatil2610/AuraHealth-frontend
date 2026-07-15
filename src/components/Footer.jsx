@@ -5,7 +5,8 @@ import {
     Clock, BookOpen, Lock, Scale, ExternalLink
 } from 'lucide-react'
 import AuraHealthLogo from './AuraHealthLogo'
-import { useTheme } from '../contexts/ThemeContext'ge
+import { useTheme } from '../contexts/ThemeContext'
+
 const FOOTER_SECTIONS = [
     {
         id: 'policies',
