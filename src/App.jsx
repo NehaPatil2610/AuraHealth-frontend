@@ -5,6 +5,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AuthView from './views/patient/AuthView'
+import LandingPage from './views/LandingPage'
 import DashboardLayout from './layouts/DashboardLayout'
 
 function useFavicon() {
@@ -33,6 +34,8 @@ function BootSplash() {
 function AppContainer() {
     const { user, checkSession } = useAuth()
     const [booting, setBooting] = useState(true)
+    const [showLanding, setShowLanding] = useState(true)
+    const [initialAuthMode, setInitialAuthMode] = useState('signin')
 
     useFavicon()
 
@@ -46,24 +49,41 @@ function AppContainer() {
         return <BootSplash />
     }
 
-    if (!user) {
-        return <AuthView />
+    // Logged-in users go straight to dashboard
+    if (user) {
+        return (
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={user.role}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.25 }}
+                    className="h-full w-full"
+                >
+                    <DashboardLayout />
+                </motion.div>
+            </AnimatePresence>
+        )
     }
 
-    return (
-        <AnimatePresence mode="wait">
-            <motion.div
-                key={user.role}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.25 }}
-                className="h-full w-full"
-            >
-                <DashboardLayout />
-            </motion.div>
-        </AnimatePresence>
-    )
+    // Not logged in: show landing page or auth view
+    if (showLanding) {
+        return (
+            <LandingPage
+                onSignIn={() => {
+                    setInitialAuthMode('signin')
+                    setShowLanding(false)
+                }}
+                onGetStarted={() => {
+                    setInitialAuthMode('signup')
+                    setShowLanding(false)
+                }}
+            />
+        )
+    }
+
+    return <AuthView initialMode={initialAuthMode} onBackToLanding={() => setShowLanding(true)} />
 }
 
 export default function App() {

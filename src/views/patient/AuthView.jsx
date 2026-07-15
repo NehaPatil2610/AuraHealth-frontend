@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mail, Lock, User, Eye, EyeOff, ShieldCheck, Heart, Stethoscope, Loader2, ArrowRight, BadgeCheck } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff, ShieldCheck, Heart, Stethoscope, Loader2, ArrowRight, ArrowLeft, BadgeCheck } from 'lucide-react'
 import AuraHealthLogo from '../../components/AuraHealthLogo'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -51,9 +51,9 @@ function AuthInput({ icon: Icon, type = 'text', placeholder, value, onChange, na
     )
 }
 
-export default function AuthView() {
+export default function AuthView({ initialMode = 'signin', onBackToLanding }) {
     const { loginWithGoogle, credentialLogin, credentialRegister, isLoading: contextLoading, authError, setAuthError } = useAuth()
-    const [authMode, setAuthMode] = useState('signin')
+    const [authMode, setAuthMode] = useState(initialMode)
     const [selectedRole, setSelectedRole] = useState('PATIENT')
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({ name: '', email: '', password: '' })
@@ -88,6 +88,16 @@ export default function AuthView() {
 
     return (
         <div className="h-screen w-screen bg-[#09090b] flex overflow-hidden font-sans select-none text-white">
+            {/* Back to Landing */}
+            {onBackToLanding && (
+                <button
+                    onClick={onBackToLanding}
+                    className="absolute top-6 left-6 z-20 flex items-center gap-2 px-3 py-2 text-sm text-zinc-500 hover:text-white transition-colors cursor-pointer rounded-lg hover:bg-zinc-800/40"
+                >
+                    <ArrowLeft style={{ width: 16, height: 16 }} />
+                    Back
+                </button>
+            )}
             {/* Left Split Layout */}
             <div className="hidden lg:flex w-1/2 relative flex-col items-center justify-center p-12 border-r border-[#27272a] bg-[#09090b]">
                 <div className="relative z-10 flex flex-col items-center max-w-md text-center space-y-8">
