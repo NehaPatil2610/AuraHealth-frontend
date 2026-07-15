@@ -1,23 +1,64 @@
-import React, { useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { useTheme } from '../contexts/ThemeContext'
 
+const SEPARATION = 150
+const AMOUNTX = 40
+const AMOUNTY = 60
+
+// Wave + size pulse run entirely on the GPU from a single uTime uniform, so the
+// animation is smooth and cheap (no per-frame CPU array writes). Grid index of
+// each point is passed as aGrid so the math matches the classic waves demo.
+const VERTEX_SHADER = /* glsl */ `
+    attribute vec2 aGrid;
+    attribute vec3 aColor;
+    uniform float uTime;
+    varying vec3 vColor;
+
+    void main() {
+        vColor = aColor;
+
+        vec3 p = position;
+        p.y = sin((aGrid.x + uTime) * 0.3) * 50.0
+            + sin((aGrid.y + uTime) * 0.5) * 50.0;
+
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+
+        // Pulsing point size (the shimmer), with perspective attenuation.
+        float pulse = (sin((aGrid.x + uTime) * 0.3) + 1.0)
+                    + (sin((aGrid.y + uTime) * 0.5) + 1.0);
+        float size = 6.0 + pulse * 4.0;
+        gl_PointSize = clamp(size * (1000.0 / -mv.z), 1.0, 40.0);
+
+        gl_Position = projectionMatrix * mv;
+    }
+`
+
+const FRAGMENT_SHADER = /* glsl */ `
+    precision mediump float;
+    uniform float uOpacity;
+    varying vec3 vColor;
+
+    void main() {
+        // Round the square GL point into a dot.
+        vec2 c = gl_PointCoord - vec2(0.5);
+        if (dot(c, c) > 0.25) discard;
+        gl_FragColor = vec4(vColor, uOpacity);
+    }
+`
+
 export default function DottedSurface({ className = '', ...props }) {
     const { isDark } = useTheme()
-
     const containerRef = useRef(null)
-    const sceneRef = useRef(null)
 
     useEffect(() => {
-        if (!containerRef.current) return
+        const el = containerRef.current
+        if (!el) return
 
-        const SEPARATION = 150
-        const AMOUNTX = 40
-        const AMOUNTY = 60
+        // Light-gray dots on the dark UI; near-black dots in light mode.
+        const dot = isDark ? 0.8 : 0.1
 
-        // Scene setup
         const scene = new THREE.Scene()
-        scene.fog = new THREE.Fog(0xffffff, 2000, 10000)
 
         const camera = new THREE.PerspectiveCamera(
             60,
@@ -27,136 +68,76 @@ export default function DottedSurface({ className = '', ...props }) {
         )
         camera.position.set(0, 355, 1220)
 
-        const renderer = new THREE.WebGLRenderer({
-            alpha: true,
-            antialias: true,
-        })
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
         renderer.setPixelRatio(window.devicePixelRatio)
         renderer.setSize(window.innerWidth, window.innerHeight)
-        renderer.setClearColor(scene.fog.color, 0)
+        renderer.setClearColor(0x000000, 0) // transparent → page bg shows through
+        el.appendChild(renderer.domElement)
 
-        containerRef.current.appendChild(renderer.domElement)
-
-        // Create particles
-        const particles = []
+        // Build the grid geometry.
         const positions = []
+        const grid = []
         const colors = []
-
-        // Create geometry for all particles
-        const geometry = new THREE.BufferGeometry()
-
         for (let ix = 0; ix < AMOUNTX; ix++) {
             for (let iy = 0; iy < AMOUNTY; iy++) {
-                const x = ix * SEPARATION - (AMOUNTX * SEPARATION) / 2
-                const y = 0 // Will be animated
-                const z = iy * SEPARATION - (AMOUNTY * SEPARATION) / 2
-
-                positions.push(x, y, z)
-                if (isDark) {
-                    colors.push(200, 200, 200)
-                } else {
-                    colors.push(0, 0, 0)
-                }
+                positions.push(
+                    ix * SEPARATION - (AMOUNTX * SEPARATION) / 2,
+                    0,
+                    iy * SEPARATION - (AMOUNTY * SEPARATION) / 2,
+                )
+                grid.push(ix, iy)
+                colors.push(dot, dot, dot)
             }
         }
 
-        geometry.setAttribute(
-            'position',
-            new THREE.Float32BufferAttribute(positions, 3),
-        )
-        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+        const geometry = new THREE.BufferGeometry()
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+        geometry.setAttribute('aGrid', new THREE.Float32BufferAttribute(grid, 2))
+        geometry.setAttribute('aColor', new THREE.Float32BufferAttribute(colors, 3))
 
-        // Create material
-        const material = new THREE.PointsMaterial({
-            size: 8,
-            vertexColors: true,
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                // Subtle enough to sit behind full-page content while readable.
+                uOpacity: { value: 0.6 },
+            },
+            vertexShader: VERTEX_SHADER,
+            fragmentShader: FRAGMENT_SHADER,
             transparent: true,
-            opacity: 0.8,
-            sizeAttenuation: true,
+            depthWrite: false,
         })
 
-        // Create points object
         const points = new THREE.Points(geometry, material)
         scene.add(points)
 
-        let count = 0
-        let animationId
-
-        // Animation function
+        // StrictMode-safe loop: each mount owns its own raf id + disposed flag,
+        // so cleanup fully stops THIS loop (fixes the stale-id leak).
+        let raf = 0
+        let disposed = false
         const animate = () => {
-            animationId = requestAnimationFrame(animate)
-
-            const positionAttribute = geometry.attributes.position
-            const posArr = positionAttribute.array
-
-            let i = 0
-            for (let ix = 0; ix < AMOUNTX; ix++) {
-                for (let iy = 0; iy < AMOUNTY; iy++) {
-                    const index = i * 3
-
-                    // Animate Y position with sine waves
-                    posArr[index + 1] =
-                        Math.sin((ix + count) * 0.3) * 50 +
-                        Math.sin((iy + count) * 0.5) * 50
-
-                    i++
-                }
-            }
-
-            positionAttribute.needsUpdate = true
-
+            if (disposed) return
+            material.uniforms.uTime.value += 0.1
             renderer.render(scene, camera)
-            count += 0.1
+            raf = requestAnimationFrame(animate)
         }
+        raf = requestAnimationFrame(animate)
 
-        // Handle window resize
         const handleResize = () => {
             camera.aspect = window.innerWidth / window.innerHeight
             camera.updateProjectionMatrix()
             renderer.setSize(window.innerWidth, window.innerHeight)
         }
-
         window.addEventListener('resize', handleResize)
 
-        // Start animation
-        animate()
-
-        // Store references
-        sceneRef.current = {
-            scene,
-            camera,
-            renderer,
-            particles: [points],
-            animationId,
-            count,
-        }
-
-        // Cleanup function
         return () => {
+            disposed = true
+            cancelAnimationFrame(raf)
             window.removeEventListener('resize', handleResize)
-
-            if (sceneRef.current) {
-                cancelAnimationFrame(sceneRef.current.animationId)
-
-                // Clean up Three.js objects
-                sceneRef.current.scene.traverse((object) => {
-                    if (object instanceof THREE.Points) {
-                        object.geometry.dispose()
-                        if (Array.isArray(object.material)) {
-                            object.material.forEach((mat) => mat.dispose())
-                        } else {
-                            object.material.dispose()
-                        }
-                    }
-                })
-
-                sceneRef.current.renderer.dispose()
-
-                if (containerRef.current && sceneRef.current.renderer.domElement) {
-                    containerRef.current.removeChild(
-                        sceneRef.current.renderer.domElement,
-                    )
-                }
+            geometry.dispose()
+            material.dispose()
+            renderer.dispose()
+            if (renderer.domElement.parentNode === el) {
+                el.removeChild(renderer.domElement)
             }
         }
     }, [isDark])
@@ -164,7 +145,7 @@ export default function DottedSurface({ className = '', ...props }) {
     return (
         <div
             ref={containerRef}
-            className={`pointer-events-none fixed inset-0 z-[1] ${className}`}
+            className={`pointer-events-none fixed inset-0 z-0 ${className}`}
             {...props}
         />
     )

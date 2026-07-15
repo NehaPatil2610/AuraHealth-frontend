@@ -13,19 +13,10 @@ export function ThemeProvider({ children }) {
 
     useEffect(() => {
         localStorage.setItem('aura-theme', theme)
-        
-        // Directly toggle .light-theme and .dark-theme on document.documentElement as requested
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark-theme')
-            document.documentElement.classList.remove('light-theme')
-            document.body.classList.add('bg-[#09090b]')
-            document.body.classList.remove('bg-zinc-50')
-        } else {
-            document.documentElement.classList.add('light-theme')
-            document.documentElement.classList.remove('dark-theme')
-            document.body.classList.add('bg-zinc-50')
-            document.body.classList.remove('bg-[#09090b]')
-        }
+
+        // The stylesheet keys every light-mode rule off [data-theme="light"],
+        // so the attribute MUST be set (the old class toggle did nothing).
+        document.documentElement.setAttribute('data-theme', theme)
     }, [theme])
 
     const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark')

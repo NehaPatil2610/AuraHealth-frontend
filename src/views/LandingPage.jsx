@@ -264,7 +264,7 @@ export default function LandingPage({ onSignIn, onGetStarted }) {
 
     return (
         <div className="min-h-screen text-white font-sans overflow-x-hidden">
-            {/* ─── DOTTED SURFACE (fixed fullscreen, z-1 = behind content) ─── */}
+            {/* ─── DOTTED SURFACE (fixed fullscreen, z-0 = animated background behind entire page) ─── */}
             <DottedSurface />
 
             {/* ─── NAVBAR ────────────────────────────────────── */}
@@ -462,8 +462,8 @@ export default function LandingPage({ onSignIn, onGetStarted }) {
                 </motion.div>
             </section>
 
-            {/* ─── CONTENT SECTIONS (opaque bg so dots only show in hero) ─── */}
-            <div className="relative z-[2] bg-[#09090b]">
+            {/* ─── CONTENT SECTIONS (transparent so animated dots show behind the whole page) ─── */}
+            <div className="relative z-[2]">
 
             {/* ─── SOCIAL PROOF BAR ──────────────────────────── */}
             <section className="relative py-12 border-y border-zinc-800/40 overflow-hidden">
