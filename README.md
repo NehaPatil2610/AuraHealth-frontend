@@ -1,16 +1,27 @@
-# React + Vite
+# 🩺 AuraHealth — Precision Care Platform (V2.0-Beta)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+AuraHealth is a premium, cinematic clinical management ecosystem. Designed for the modern era, it provides a seamless, ultra-responsive interface for patients and healthcare providers to manage appointments, access medical records, and oversee clinical practice with total data privacy.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Interface Highlights
 
-## React Compiler
+* **Cinematic Design System:** Built on an obsidian foundation (`#09090b`) with intelligent emerald (`#10b981`) accents and subtle glassmorphic (`backdrop-blur`) data panels.
+* **Floating Dock Navigation:** A centralized, low-profile navigation island that declutters the viewport, creating an expansive and immersive user workspace.
+* **Intelligent Mesh Backgrounds:** A dynamic, grid-responsive mesh gradient system providing a high-end, premium aesthetic for landing and workspace views.
+* **Real-Time State Integration:** A responsive, stateful interface featuring real-time clinical notification feeds and seamless theme toggling.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 📂 Project Architecture
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+```text
+src/
+  ├── components/       # Core UI Primitives (Floating Navbar Dock, Appointment Rows, Footer)
+  ├── contexts/         # Global State Engines (Auth, Notification, Theme)
+  ├── layouts/          # Viewport Master Containers (DashboardLayout)
+  ├── views/            
+  │   ├── doctor/       # Physician-side clinical management logic
+  │   └── patient/      # Auth gateways, Patient Workspaces, Medical Record access
+  ├── App.jsx           # Master Routing & Session Enforcement
+  └── index.css         # Tailwind directives & Custom Blur/Gradient definitions
