@@ -1,18 +1,71 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Crown, Shield, LogOut, CheckCircle2, User, Settings, LayoutDashboard, Heart, Zap, Star } from 'lucide-react'
+import { Crown, Shield, LogOut, CheckCircle2, User, Settings, LayoutDashboard, Heart, Zap, Star, X, Info } from 'lucide-react'
 
 import AuraHealthLogo from '../components/AuraHealthLogo'
 import ThemeToggle from '../components/ThemeToggle'
 import NotificationPanel from '../components/NotificationPanel'
-import Footer from '../components/Footer'
 
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
+import { ProfileDropdown } from '../components/ui/profile-dropdown'
+import PricingCardTwo from '../components/ui/pricing-card-triple'
+import HoverGradientNavBar from '../components/ui/hover-gradient-nav-bar'
 
-import DoctorWorkspace from '../views/patient/DoctorWorkspace' // Assuming based on user provided directory tree structure
+import DoctorWorkspace from '../views/patient/DoctorWorkspace'
 import AdminDashboard from '../views/patient/AdminDashboard'
 import PatientWorkspace from '../views/patient/PatientWorkspace'
+
+function BillingModal({ isOpen, onClose, selectedPlan, onActivate }) {
+    const { isDark } = useTheme()
+    if (!isOpen) return null
+
+    return (
+        <AnimatePresence>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+                    onClick={onClose}
+                />
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className={`relative w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col ${
+                        isDark ? 'bg-[#18181b] border border-[#27272a]' : 'bg-white border border-zinc-200'
+                    }`}
+                >
+                    <div className={`p-6 border-b flex items-center justify-between ${isDark ? 'border-[#27272a]' : 'border-zinc-200'}`}>
+                        <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>Complete Billing</h2>
+                        <button onClick={onClose} className="p-2 rounded-full hover:bg-zinc-800 transition-colors text-zinc-400">
+                            <X style={{ width: 20, height: 20, minWidth: 20, minHeight: 20, flexShrink: 0 }} />
+                        </button>
+                    </div>
+                    <div className="p-6 overflow-y-auto custom-scrollbar flex-1 max-h-[80vh]">
+                        <div className="space-y-4">
+                            <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                                You have selected the <strong className="text-[#10b981]">{selectedPlan?.name}</strong> plan.
+                                Please enter your billing details to activate this plan.
+                            </p>
+                            <div className="space-y-3">
+                                <input type="text" placeholder="Card Number" className={`w-full p-3 rounded-xl border focus:outline-none focus:border-[#10b981] transition-colors ${isDark ? 'bg-[#09090b] border-[#27272a] text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`} />
+                                <div className="flex gap-3">
+                                    <input type="text" placeholder="MM/YY" className={`w-1/2 p-3 rounded-xl border focus:outline-none focus:border-[#10b981] transition-colors ${isDark ? 'bg-[#09090b] border-[#27272a] text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`} />
+                                    <input type="text" placeholder="CVC" className={`w-1/2 p-3 rounded-xl border focus:outline-none focus:border-[#10b981] transition-colors ${isDark ? 'bg-[#09090b] border-[#27272a] text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`} />
+                                </div>
+                            </div>
+                            <button 
+                                onClick={onActivate} 
+                                className="w-full py-4 mt-4 rounded-xl text-sm font-bold bg-[#10b981] hover:bg-emerald-400 text-white shadow-lg transition-all cursor-pointer"
+                            >
+                                Pay & Activate
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+        </AnimatePresence>
+    )
+}
 
 const SUBSCRIPTION_TIERS = [
     { key: 'FREE', label: 'Free Tier', icon: Heart, color: 'text-zinc-400', price: '$0', period: '/m' },
@@ -31,8 +84,10 @@ export default function DashboardLayout() {
     const [profileName, setProfileName] = useState(user?.name || '')
     const [profileEmail, setProfileEmail] = useState(user?.email || '')
     const [profileSaved, setProfileSaved] = useState(false)
+    const [showPromoModal, setShowPromoModal] = useState(false)
+    const [billingPlan, setBillingPlan] = useState(null)
 
-    const initials = user?.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AU'
+    const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'AU'
     const role = user?.role?.toUpperCase() || 'PATIENT'
 
     useEffect(() => {
@@ -49,11 +104,27 @@ export default function DashboardLayout() {
         }
     }, [isDark])
 
-    const handleSelectPlan = (planKey, planLabel) => {
-        setActivePlan(planKey)
-        setSuccessBanner(`Upgraded to ${planLabel}`)
-        setTimeout(() => setSuccessBanner(null), 3000)
+    const handleSelectPlan = (plan) => {
+        setBillingPlan(plan)
     }
+
+    const handleActivatePlan = () => {
+        setActivePlan(billingPlan.key)
+        setSuccessBanner(`Successfully upgraded to ${billingPlan.name}!`)
+        setTimeout(() => setSuccessBanner(null), 3000)
+        setBillingPlan(null)
+        setShowPromoModal(false)
+    }
+
+    const navItems = [
+        { icon: <LayoutDashboard className="h-5 w-5" />, label: "Home", onClick: () => setCurrentView('overview'), gradient: "radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.06) 50%, rgba(4,120,87,0) 100%)", iconColor: "group-hover:text-emerald-500" },
+        isPatient ? { icon: <Star className="h-5 w-5" />, label: "Plans", onClick: () => setShowPromoModal(true), gradient: "radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.06) 50%, rgba(4,120,87,0) 100%)", iconColor: "group-hover:text-emerald-500" } : null,
+        { icon: <Info className="h-5 w-5" />, label: "About", onClick: () => setCurrentView('about'), gradient: "radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.06) 50%, rgba(4,120,87,0) 100%)", iconColor: "group-hover:text-emerald-500" },
+        { component: <NotificationPanel /> },
+        { component: <ThemeToggle /> },
+        { icon: <Settings className="h-5 w-5" />, label: "Settings", onClick: () => setCurrentView('settings'), gradient: "radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.06) 50%, rgba(4,120,87,0) 100%)", iconColor: "group-hover:text-emerald-500" },
+        { component: <ProfileDropdown data={{ name: user?.name, email: user?.email, initials, role }} onNavigate={setCurrentView} onLogout={logout} iconOnly={true} /> }
+    ].filter(Boolean)
 
     const handleSaveProfile = (e) => {
         e.preventDefault()
@@ -124,6 +195,23 @@ export default function DashboardLayout() {
                 </div>
             )
         }
+        if (currentView === 'about') {
+            return (
+                <div className={`p-8 rounded-2xl border ${isDark ? 'bg-[#18181b] border-[#27272a]' : 'bg-white border-zinc-200'}`}>
+                    <div className="flex items-center justify-center mb-6">
+                        <AuraHealthLogo size={48} />
+                    </div>
+                    <h2 className={`text-2xl font-bold mb-4 text-center ${isDark ? 'text-white' : 'text-zinc-900'}`}>About AuraHealth</h2>
+                    <p className={`text-center max-w-2xl mx-auto leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                        AuraHealth is a cutting-edge platform designed to bridge the gap between patients and medical professionals.
+                        Our mission is to provide accessible, efficient, and personalized healthcare solutions through innovative technology and dedicated service.
+                    </p>
+                    <div className="mt-8 flex justify-center gap-4">
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-zinc-100 text-zinc-500'}`}>Version 1.0.0</span>
+                    </div>
+                </div>
+            )
+        }
         return renderWorkspace()
     }
 
@@ -131,171 +219,90 @@ export default function DashboardLayout() {
         <div className={`flex h-screen w-screen overflow-hidden font-sans select-none transition-colors duration-300 ${
             isDark ? 'bg-[#09090b] text-zinc-50' : 'bg-zinc-50 text-zinc-900'
         }`}>
-            {/* ── LEFT SIDEBAR NAV DRAWER ── */}
-            <aside className={`w-[280px] shrink-0 border-r flex flex-col transition-colors duration-300 z-40 sticky top-0 h-screen ${
-                isDark ? 'bg-[#09090b] border-[#27272a]' : 'bg-white border-zinc-200 shadow-[2px_0_15px_rgba(0,0,0,0.03)]'
-            }`}>
-                {/* Brand Header */}
-                <div className={`h-16 flex items-center px-6 border-b shrink-0 cursor-pointer ${
-                    isDark ? 'border-[#27272a]' : 'border-zinc-200'
-                }`} onClick={() => setCurrentView('overview')}>
-                    <AuraHealthLogo size={24} />
-                    <span className={`font-bold tracking-tight ml-3 ${isDark ? 'text-white' : 'text-zinc-900'}`}>AuraHealth</span>
-                </div>
-
-                {/* Profile Card */}
-                <div className={`p-6 border-b shrink-0 transition-colors ${
-                        isDark ? 'border-[#27272a]' : 'border-zinc-200'
-                    }`}>
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#10b981] to-emerald-700 flex items-center justify-center text-sm font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.2)] shrink-0">
-                            {initials}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                            <p className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-zinc-900'}`}>{user?.name || 'AuraHealth User'}</p>
-                            <p className={`text-xs truncate ${isDark ? 'text-zinc-500' : 'text-zinc-500'} mt-0.5`}>{user?.email || 'user@aurahealth.local'}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md ${
-                            isDark ? 'bg-[#18181b] border border-[#27272a]' : 'bg-zinc-100'
-                        }`}>
-                            <Shield style={{ width: 12, height: 12, minWidth: 12, minHeight: 12, flexShrink: 0 }} className={isDark ? 'text-zinc-400' : 'text-zinc-500'} />
-                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{role.replace('ROLE_', '')}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Scrollable Nav & Matrix */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                    <div className="space-y-1">
-                        <button 
-                            onClick={() => setCurrentView('overview')}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors cursor-pointer ${
-                                currentView === 'overview'
-                                    ? isDark ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-emerald-50 text-emerald-700 font-semibold'
-                                    : isDark ? 'hover:bg-[#18181b] text-zinc-400 hover:text-white border border-transparent' : 'hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900 border border-transparent'
-                            }`}
+            {/* Promo Modal (Overlay) */}
+            <AnimatePresence>
+                {showPromoModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowPromoModal(false)}>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-5xl rounded-3xl"
                         >
-                            <LayoutDashboard style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, flexShrink: 0 }} />
-                            <span className="text-sm font-medium">Workspace</span>
-                        </button>
-                        <button 
-                            onClick={() => setCurrentView('profile')}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors cursor-pointer ${
-                                currentView === 'profile'
-                                    ? isDark ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-emerald-50 text-emerald-700 font-semibold'
-                                    : isDark ? 'hover:bg-[#18181b] text-zinc-400 hover:text-white border border-transparent' : 'hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900 border border-transparent'
-                            }`}
-                        >
-                            <User style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, flexShrink: 0 }} />
-                            <span className="text-sm font-medium">My Profile</span>
-                        </button>
-                        <button 
-                            onClick={() => setCurrentView('settings')}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors cursor-pointer ${
-                                currentView === 'settings'
-                                    ? isDark ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-emerald-50 text-emerald-700 font-semibold'
-                                    : isDark ? 'hover:bg-[#18181b] text-zinc-400 hover:text-white border border-transparent' : 'hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900 border border-transparent'
-                            }`}
-                        >
-                            <Settings style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, flexShrink: 0 }} />
-                            <span className="text-sm font-medium">Account Settings</span>
-                        </button>
-                    </div>
-
-                    {/* Premium Plan Matrix */}
-                    {isPatient && (
-                        <div>
-                            <div className="flex items-center justify-between px-2 mb-3">
-                                <div className="flex items-center gap-2">
-                                    <Crown style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, flexShrink: 0 }} className="text-[#10b981]" />
-                                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Premium Care Plans</span>
-                                </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <PricingCardTwo
+                                    tone='emerald'
+                                    icon={<Zap />}
+                                    name='Early Assist'
+                                    price={9}
+                                    periodLabel='/mo'
+                                    features={[
+                                        { label: 'Priority matching' },
+                                        { label: '24/7 nurse line' },
+                                        { label: 'Basic insights' },
+                                    ]}
+                                    cta={{ onClick: () => handleSelectPlan({ key: 'EARLY_ASSISTANCE', name: 'Early Assist' }), label: 'Upgrade' }}
+                                />
+                                <PricingCardTwo
+                                    tone='emerald'
+                                    icon={<Star />}
+                                    name='Personal Care'
+                                    price={24}
+                                    periodLabel='/mo'
+                                    features={[
+                                        { label: 'Dedicated doctor' },
+                                        { label: 'Unlimited messaging' },
+                                        { label: 'Advanced insights' },
+                                    ]}
+                                    cta={{ onClick: () => handleSelectPlan({ key: 'PERSONAL_ASSISTANCE', name: 'Personal Care' }), label: 'Upgrade' }}
+                                />
+                                <PricingCardTwo
+                                    tone='emerald'
+                                    icon={<Crown />}
+                                    name='Wellness+'
+                                    price={49}
+                                    periodLabel='/mo'
+                                    features={[
+                                        { label: 'Everything included' },
+                                        { label: 'In-home visits (select areas)' },
+                                        { label: 'Genetic screening' },
+                                    ]}
+                                    cta={{ onClick: () => handleSelectPlan({ key: 'COMPREHENSIVE_PRIORITY', name: 'Wellness+' }), label: 'Upgrade' }}
+                                />
                             </div>
-                            <AnimatePresence>
-                                {successBanner && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: -10, height: 0 }}
-                                        animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                        exit={{ opacity: 0, y: -10, height: 0 }}
-                                        className="mb-3 px-3 py-2 rounded-lg bg-[#10b981]/10 border border-[#10b981]/20 flex items-center gap-2 text-[#10b981]"
-                                    >
-                                        <CheckCircle2 style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, flexShrink: 0 }} />
-                                        <span className="text-[10px] font-bold">{successBanner}</span>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                            <div className="space-y-2">
-                                {SUBSCRIPTION_TIERS.map(tier => {
-                                    const TierIcon = tier.icon
-                                    const isCurrent = activePlan === tier.key
-                                    return (
-                                        <div key={tier.key} className={`p-3 rounded-xl border transition-all ${
-                                            isCurrent
-                                                ? isDark ? 'border-[#10b981] bg-[#10b981]/[0.08] shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-emerald-400 bg-emerald-50/80 shadow-sm'
-                                                : isDark ? 'border-[#27272a] bg-[#18181b]/50 hover:border-zinc-700' : 'border-zinc-200 bg-white hover:border-zinc-300'
-                                        }`}>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <div className="flex items-center gap-2">
-                                                    <TierIcon style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, flexShrink: 0 }} className={tier.color} />
-                                                    <p className={`text-xs font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>{tier.label}</p>
-                                                </div>
-                                                {isCurrent && <span className="text-[9px] font-bold text-[#10b981] uppercase bg-[#10b981]/10 px-1.5 py-0.5 rounded shrink-0">Active</span>}
-                                            </div>
-                                            <div className="flex items-center justify-between mt-2">
-                                                <p className={`text-[11px] ${tier.color}`}><span className="font-bold text-sm">{tier.price}</span>{tier.period}</p>
-                                                {!isCurrent && (
-                                                    <button 
-                                                        onClick={() => handleSelectPlan(tier.key, tier.label)}
-                                                        className={`px-3 py-1 rounded text-[10px] font-bold transition-colors cursor-pointer ${
-                                                            isDark ? 'bg-zinc-800 hover:bg-zinc-700 text-white' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-800'
-                                                        }`}
-                                                    >
-                                                        Select
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    )}
-                </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
-                {/* Sidebar Bottom: Logout */}
-                <div className={`p-4 border-t shrink-0 ${isDark ? 'border-[#27272a]' : 'border-zinc-200'}`}>
-                    <button
-                        onClick={logout}
-                        className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl transition-colors text-sm font-bold cursor-pointer ${
-                            isDark ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20' : 'bg-red-50 hover:bg-red-100 text-red-600'
-                        }`}
-                    >
-                        <LogOut style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, flexShrink: 0 }} />
-                        Sign Out
-                    </button>
-                </div>
-            </aside>
+            <BillingModal isOpen={!!billingPlan} onClose={() => setBillingPlan(null)} selectedPlan={billingPlan} onActivate={handleActivatePlan} />
+
+            <AnimatePresence>
+                {successBanner && (
+                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                                className="fixed top-20 right-8 z-[60] bg-[#10b981] text-white px-6 py-3 rounded-xl shadow-2xl font-bold text-sm flex items-center gap-3">
+                        <CheckCircle2 style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, flexShrink: 0 }} />
+                        {successBanner}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* ── DYNAMIC CENTER VIEWPORT PANEL ── */}
             <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
-                {/* Top Header Area */}
-                <header className={`h-16 shrink-0 border-b px-8 flex items-center justify-between z-30 transition-colors duration-300 relative ${
-                    isDark ? 'bg-[#09090b]/80 border-[#27272a] backdrop-blur-md' : 'bg-white/80 border-zinc-200 backdrop-blur-md'
-                }`}>
-                    <div className="flex items-center">
-                        <span className={`font-bold tracking-tight text-lg ${isDark ? 'text-white' : 'text-zinc-900'}`}>AuraHealth Workspace</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                        <ThemeToggle />
-                        <NotificationPanel />
-                    </div>
-                </header>
+                
+                {/* Floating Logo Anchor */}
+                <div className="absolute top-6 left-6 sm:left-8 z-50 pointer-events-none hidden sm:block">
+                    <AuraHealthLogo size={36} />
+                </div>
+
+                {/* Gradient Navbar */}
+                <div className="pt-2 sm:pt-6 px-2 sm:px-4 md:px-0 relative z-40">
+                    <HoverGradientNavBar menuItems={navItems} />
+                </div>
 
                 <main className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 transition-colors duration-300 ${
-                    isDark ? 'bg-[#09090b]' : 'bg-zinc-50'
+                    isDark ? 'bg-transparent' : 'bg-transparent'
                 }`}>
                     <div className="max-w-6xl mx-auto h-full">
                         <AnimatePresence mode="wait">
@@ -311,9 +318,6 @@ export default function DashboardLayout() {
                         </AnimatePresence>
                     </div>
                 </main>
-
-                {/* Footer Section */}
-                <Footer />
             </div>
         </div>
     )

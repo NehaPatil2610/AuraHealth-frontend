@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import AuraHealthLogo from '../components/AuraHealthLogo'
 import DottedSurface from '../components/DottedSurface'
-import Footer from '../components/Footer'
+import { Footer } from '../components/ui/footer'
 
 /* ─── Animation Variants ──────────────────────────────────── */
 const fadeUp = {
@@ -725,7 +725,13 @@ export default function LandingPage({ onSignIn, onGetStarted }) {
             </Section>
 
             {/* ─── FOOTER ─────────────────────────────────────── */}
-            <Footer />
+            <Footer 
+                className="bg-transparent border-t border-zinc-800/40 relative z-10"
+                onSubscribe={async (email) => {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    return Math.random() > 0.3;
+                }}
+            />
 
             </div>{/* end opaque content wrapper */}
         </div>

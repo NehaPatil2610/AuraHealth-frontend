@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Clock, Activity, FileText, ChevronRight, Video, Plus, X, Search, CheckCircle2, UserCircle, CalendarDays, AlertTriangle } from 'lucide-react'
+import { Calendar, Clock, Activity, FileText, ChevronRight, Video, Plus, X, Search, CheckCircle2, UserCircle, CalendarDays, AlertTriangle, Crown, Zap, Star, Heart } from 'lucide-react'
+import { CalendarAppointmentBookingDemo } from '../../components/ui/CalendarAppointmentBookingDemo'
+import PricingCardTwo from '../../components/ui/pricing-card-triple'
+import Footer from '../../components/Footer'
 
 function ModalShell({ isOpen, onClose, title, children }) {
     const isDark = true
@@ -27,7 +30,7 @@ function ModalShell({ isOpen, onClose, title, children }) {
                             <X style={{ width: 20, height: 20, minWidth: 20, minHeight: 20, flexShrink: 0 }} />
                         </button>
                     </div>
-                    <div className="p-6 overflow-y-auto custom-scrollbar flex-1 max-h-[60vh]">
+                    <div className="p-6 overflow-y-auto custom-scrollbar flex-1 max-h-[80vh]">
                         {children}
                     </div>
                 </motion.div>
@@ -126,48 +129,7 @@ function BookAppointmentModal({ isOpen, onClose }) {
                     <button onClick={() => setStep(2)} className="text-xs text-zinc-500 hover:text-white mb-2 flex items-center gap-1 cursor-pointer transition-colors">
                         ← Back to Practitioners
                     </button>
-                    <div className="grid grid-cols-2 gap-6">
-                        <div>
-                            <p className={`text-sm font-bold mb-3 ${isDark ? 'text-white' : 'text-zinc-900'}`}>Date Schedule Matrix</p>
-                            <div className="space-y-2">
-                                {['Today', 'Tomorrow', 'Oct 18', 'Oct 19'].map(d => (
-                                    <button key={d} onClick={() => setSelectedDate(d)} className={`w-full py-2.5 px-3 rounded-lg border text-sm font-bold cursor-pointer transition-colors flex items-center justify-between ${
-                                        selectedDate === d
-                                            ? (isDark ? 'border-[#10b981] bg-[#10b981]/10 text-[#10b981]' : 'border-emerald-500 bg-emerald-50 text-emerald-700')
-                                            : (isDark ? 'border-[#27272a] bg-[#09090b] hover:border-zinc-600 text-zinc-400' : 'border-zinc-200 bg-white hover:border-zinc-300 text-zinc-600')
-                                    }`}>
-                                        <span>{d}</span>
-                                        <CalendarDays style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, flexShrink: 0 }} />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div>
-                            <p className={`text-sm font-bold mb-3 ${isDark ? 'text-white' : 'text-zinc-900'}`}>Open Timing Blocks</p>
-                            <div className="grid grid-cols-1 gap-2">
-                                {['09:00 AM', '10:30 AM', '02:00 PM', '04:15 PM'].map(t => (
-                                    <button key={t} onClick={() => setSelectedTime(t)} disabled={!selectedDate} className={`w-full py-2.5 px-3 rounded-lg border text-sm font-bold transition-colors flex items-center justify-between ${
-                                        !selectedDate ? 'opacity-50 cursor-not-allowed border-[#27272a] bg-[#09090b] text-zinc-600' :
-                                        selectedTime === t
-                                            ? (isDark ? 'border-[#10b981] bg-[#10b981]/10 text-[#10b981]' : 'border-emerald-500 bg-emerald-50 text-emerald-700')
-                                            : (isDark ? 'border-[#27272a] bg-[#09090b] hover:border-[#10b981]/50 text-zinc-300 cursor-pointer' : 'border-zinc-200 bg-white hover:border-emerald-300 text-zinc-700 cursor-pointer')
-                                    }`}>
-                                        <span>{t}</span>
-                                        <Clock style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, flexShrink: 0 }} />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    <button 
-                        onClick={handleBook} 
-                        disabled={!selectedDate || !selectedTime}
-                        className={`w-full py-4 mt-4 rounded-xl text-sm font-bold transition-all shadow-lg ${
-                            selectedDate && selectedTime ? 'bg-[#10b981] hover:bg-emerald-400 text-white cursor-pointer' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                        }`}
-                    >
-                        Confirm Appointment
-                    </button>
+                    <CalendarAppointmentBookingDemo onConfirm={handleBook} />
                 </div>
             )}
         </ModalShell>
@@ -246,12 +208,52 @@ function RescheduleModal({ isOpen, onClose, apt }) {
     )
 }
 
+function BillingModal({ isOpen, onClose, selectedPlan, onActivate }) {
+    const isDark = true
+    if (!isOpen) return null
+
+    return (
+        <ModalShell isOpen={isOpen} onClose={onClose} title="Complete Billing">
+            <div className="space-y-4">
+                <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                    You have selected the <strong className="text-[#10b981]">{selectedPlan?.name}</strong> plan.
+                    Please enter your billing details to activate this plan.
+                </p>
+                <div className="space-y-3">
+                    <input type="text" placeholder="Card Number" className={`w-full p-3 rounded-xl border focus:outline-none focus:border-[#10b981] transition-colors ${isDark ? 'bg-[#09090b] border-[#27272a] text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`} />
+                    <div className="flex gap-3">
+                        <input type="text" placeholder="MM/YY" className={`w-1/2 p-3 rounded-xl border focus:outline-none focus:border-[#10b981] transition-colors ${isDark ? 'bg-[#09090b] border-[#27272a] text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`} />
+                        <input type="text" placeholder="CVC" className={`w-1/2 p-3 rounded-xl border focus:outline-none focus:border-[#10b981] transition-colors ${isDark ? 'bg-[#09090b] border-[#27272a] text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-900'}`} />
+                    </div>
+                </div>
+                <button 
+                    onClick={onActivate} 
+                    className="w-full py-4 mt-4 rounded-xl text-sm font-bold bg-[#10b981] hover:bg-emerald-400 text-white shadow-lg transition-all cursor-pointer"
+                >
+                    Pay & Activate
+                </button>
+            </div>
+        </ModalShell>
+    )
+}
+
 export default function PatientWorkspace() {
     const isDark = true // global state applied to body
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
     const [activeRecordApt, setActiveRecordApt] = useState(null)
     const [activeRescheduleApt, setActiveRescheduleApt] = useState(null)
+    const [billingPlan, setBillingPlan] = useState(null)
     const [activeMessage, setActiveMessage] = useState(null)
+
+    const handleSelectPlan = (plan) => {
+        setBillingPlan(plan)
+    }
+
+    const handleActivatePlan = () => {
+        setActiveMessage(`Successfully upgraded to ${billingPlan.name}!`)
+        setTimeout(() => setActiveMessage(null), 3000)
+        setBillingPlan(null)
+    }
 
     const upcomingAppointments = [
         { id: 1, doctor: 'Dr. Sarah Jenkins', specialty: 'Cardiology', time: 'Today, 2:30 PM', type: 'Video Consult' },
@@ -259,10 +261,11 @@ export default function PatientWorkspace() {
     ]
 
     return (
-        <div className="space-y-8">
+        <div className="flex flex-col min-h-[calc(100vh-100px)] space-y-8">
             <BookAppointmentModal isOpen={isBookingModalOpen} onClose={() => setIsBookingModalOpen(false)} />
             <ViewRecordModal isOpen={!!activeRecordApt} onClose={() => setActiveRecordApt(null)} apt={activeRecordApt} />
             <RescheduleModal isOpen={!!activeRescheduleApt} onClose={() => setActiveRescheduleApt(null)} apt={activeRescheduleApt} />
+            <BillingModal isOpen={!!billingPlan} onClose={() => setBillingPlan(null)} selectedPlan={billingPlan} onActivate={handleActivatePlan} />
             
             <AnimatePresence>
                 {activeMessage && (
@@ -279,7 +282,7 @@ export default function PatientWorkspace() {
                     <h2 className={`text-2xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                         My Health Overview
                     </h2>
-                    <p className={`text-sm mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    <p className={`text-sm mt-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                         Manage your upcoming appointments and access your medical records.
                     </p>
                 </div>
@@ -292,15 +295,19 @@ export default function PatientWorkspace() {
                 </button>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-6">
+            <div className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    <h3 className={`font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>Upcoming Appointments</h3>
+                    <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-zinc-500 to-zinc-800 dark:from-zinc-400 dark:to-white">
+                        Upcoming Appointments
+                    </h3>
                     <div className="space-y-4">
                         {upcomingAppointments.map((apt) => (
                             <motion.div
                                 key={apt.id}
-                                className={`p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
-                                    isDark ? 'bg-[#18181b] border-[#27272a]' : 'bg-white border-zinc-200 shadow-sm'
+                                className={`p-5 rounded-2xl border ring-1 ring-black/5 dark:ring-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${
+                                    isDark 
+                                    ? 'bg-black/20 backdrop-blur-xl border-white/10 hover:border-[#10b981]/40 hover:bg-[#10b981]/5 shadow-[0_4px_20px_rgba(0,0,0,0.2)]' 
+                                    : 'bg-white/80 backdrop-blur-xl border-zinc-200/80 hover:border-[#10b981]/40 hover:bg-[#10b981]/5 shadow-[0_4px_20px_rgba(31,38,135,0.03)]'
                                 }`}
                             >
                                 <div className="flex items-center gap-4">
@@ -309,17 +316,27 @@ export default function PatientWorkspace() {
                                     </div>
                                     <div>
                                         <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>{apt.doctor}</h4>
-                                        <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{apt.specialty}</p>
+                                        <span className="bg-zinc-800/40 text-zinc-400 border border-zinc-700/30 text-[11px] px-2 py-0.5 rounded-md inline-block mt-1">
+                                            {apt.specialty}
+                                        </span>
                                     </div>
                                 </div>
-                                <div className={`flex flex-col gap-1 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                                <div className={`flex flex-col items-start gap-1 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
                                     <div className="flex items-center gap-1.5 text-sm font-bold">
                                         <Calendar style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, flexShrink: 0 }} className="text-[#10b981]" />
                                         {apt.time}
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-xs font-semibold">
-                                        <Video style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, flexShrink: 0 }} className={isDark ? 'text-zinc-500' : 'text-zinc-400'} />
-                                        {apt.type}
+                                    <div className="flex items-center text-xs font-semibold mt-1">
+                                        {apt.type === 'Video Consult' ? (
+                                            <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                <Video style={{ width: 12, height: 12, flexShrink: 0 }} />
+                                                {apt.type}
+                                            </span>
+                                        ) : (
+                                            <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                {apt.type}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
@@ -344,12 +361,16 @@ export default function PatientWorkspace() {
                 </div>
 
                 <div className="space-y-6">
-                    <div className={`p-6 rounded-2xl border ${
-                        isDark ? 'bg-[#18181b] border-[#27272a]' : 'bg-white border-zinc-200 shadow-sm'
+                    <div className={`p-6 rounded-2xl border ring-1 ring-black/5 dark:ring-white/5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${
+                        isDark 
+                        ? 'bg-black/20 backdrop-blur-xl border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:border-[#10b981]/30 hover:bg-[#10b981]/5' 
+                        : 'bg-white/80 backdrop-blur-xl border-zinc-200/80 shadow-[0_4px_20px_rgba(31,38,135,0.03)] hover:border-[#10b981]/30 hover:bg-[#10b981]/5'
                     }`}>
                         <div className="flex items-center gap-2 mb-6">
-                            <FileText style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, flexShrink: 0 }} className="text-[#10b981]" />
-                            <h3 className={`font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>Recent Records</h3>
+                            <FileText style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, flexShrink: 0 }} className="text-[#10b981]" />
+                            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-zinc-500 to-zinc-800 dark:from-zinc-400 dark:to-white">
+                                Recent Records
+                            </h3>
                         </div>
                         <div className="space-y-4">
                             {[
@@ -377,6 +398,8 @@ export default function PatientWorkspace() {
                     </div>
                 </div>
             </div>
+
+            <Footer />
         </div>
     )
 }

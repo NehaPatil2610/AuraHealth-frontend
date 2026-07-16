@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, Clock, Video, Bell, FileText, CheckCircle, CheckCircle2 } from 'lucide-react'
+import Footer from '../../components/Footer'
 
 export default function DoctorWorkspace() {
     const isDark = document.body.classList.contains('dark-theme')
@@ -19,7 +20,7 @@ export default function DoctorWorkspace() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col min-h-[calc(100vh-100px)] space-y-6">
             <AnimatePresence>
                 {activeMessage && (
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -35,7 +36,7 @@ export default function DoctorWorkspace() {
                     <h2 className={`text-2xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                         Consultation Queue
                     </h2>
-                    <p className={`text-sm mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    <p className={`text-sm mt-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                         Manage your active schedule and incoming priority patients.
                     </p>
                 </div>
@@ -58,15 +59,18 @@ export default function DoctorWorkspace() {
                 </div>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-6">
+            <div className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-4">
+                    <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-zinc-500 to-zinc-800 dark:from-zinc-400 dark:to-white mb-6">
+                        Consultation Queue
+                    </h3>
                     {appointments.map((apt) => (
                         <motion.div
                             key={apt.id}
-                            className={`p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
+                            className={`p-5 rounded-2xl border ring-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 group hover:-translate-y-0.5 hover:shadow-xl ${
                                 apt.urgent
-                                    ? isDark ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200'
-                                    : isDark ? 'bg-[#18181b] border-zinc-800' : 'bg-white border-zinc-200 shadow-sm'
+                                    ? isDark ? 'bg-red-500/10 border-red-500/30 ring-red-500/20 shadow-[0_4px_20px_rgba(239,68,68,0.15)] hover:border-red-500' : 'bg-red-50 border-red-200 ring-red-500/10 shadow-sm hover:border-red-400'
+                                    : isDark ? 'bg-[#18181b] border-zinc-800 ring-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:border-emerald-500/50' : 'bg-white border-zinc-200 ring-black/5 shadow-sm hover:border-emerald-400'
                             }`}
                         >
                             <div className="flex items-center gap-4">
@@ -110,25 +114,27 @@ export default function DoctorWorkspace() {
                 </div>
 
                 <div className="space-y-6">
-                    <div className={`p-6 rounded-2xl border ${
-                        isDark ? 'bg-[#18181b] border-zinc-800' : 'bg-white border-zinc-200 shadow-sm'
+                    <div className={`p-6 rounded-2xl border ring-1 ring-black/5 dark:ring-white/5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${
+                        isDark ? 'bg-black/20 backdrop-blur-xl border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.2)]' : 'bg-white/80 backdrop-blur-xl border-zinc-200/80 shadow-[0_4px_20px_rgba(31,38,135,0.03)]'
                     }`}>
-                        <div className="flex items-center gap-2 mb-4">
-                            <Calendar style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, flexShrink: 0 }} className="text-emerald-500" />
-                            <h3 className={`font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>Today's Summary</h3>
+                        <div className="flex items-center gap-2 mb-6">
+                            <Calendar style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, flexShrink: 0 }} className="text-emerald-500" />
+                            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] bg-clip-text text-transparent bg-gradient-to-r from-zinc-500 to-zinc-800 dark:from-zinc-400 dark:to-white">
+                                Today's Summary
+                            </h3>
                         </div>
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                                <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Total Scheduled</span>
-                                <span className={`font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>8</span>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center backdrop-blur-md ${isDark ? 'bg-black/20 border-white/10 shadow-inner' : 'bg-white/40 border-white/40 shadow-sm'}`}>
+                                <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>8</span>
+                                <span className={`text-[10px] uppercase tracking-wider font-bold mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Total</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Completed</span>
-                                <span className={`font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>3</span>
+                            <div className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center backdrop-blur-md ${isDark ? 'bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-emerald-50/80 border-emerald-200/60 shadow-sm'}`}>
+                                <span className="text-2xl font-bold text-emerald-500">3</span>
+                                <span className="text-[10px] uppercase tracking-wider font-bold mt-1 text-emerald-500/70">Done</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Pending</span>
-                                <span className={`font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>5</span>
+                            <div className={`col-span-2 p-4 rounded-xl border flex items-center justify-between backdrop-blur-md ${isDark ? 'bg-black/20 border-white/10 shadow-inner' : 'bg-white/40 border-white/40 shadow-sm'}`}>
+                                <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Pending</span>
+                                <span className={`text-xl font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>5</span>
                             </div>
                         </div>
                         <button 
@@ -149,6 +155,8 @@ export default function DoctorWorkspace() {
                     </div>
                 </div>
             </div>
+            
+            <Footer />
         </div>
     )
 }
