@@ -26,10 +26,19 @@ export function AuthProvider({ children }) {
     }, [])
 
     // ── Session Check (cookie-based JWT validation) ────────────
+    // Uses an AbortController timeout so the app never hangs on a cold
+    // Render start (free tier queues TCP connections indefinitely, which
+    // would keep the black BootSplash visible forever without a timeout).
     const checkSession = useCallback(async () => {
         setIsLoading(true)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 8000) // 8-second max wait
         try {
-            const res = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: 'include' })
+            const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                credentials: 'include',
+                signal: controller.signal,
+            })
+            clearTimeout(timeoutId)
             if (res.ok) {
                 const data = await res.json()
                 setUser(normalizeUser(data))
@@ -37,8 +46,9 @@ export function AuthProvider({ children }) {
                 return true
             }
         } catch {
-            // No active session — stay on auth screen
+            // AbortError (timeout) or network error — no active session, show landing page
         } finally {
+            clearTimeout(timeoutId)
             setIsLoading(false)
         }
         return false
