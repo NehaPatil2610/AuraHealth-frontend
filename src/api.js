@@ -1,5 +1,10 @@
 // src/api.js
 
+// In production the Vite env var points to the Render backend origin.
+// In local dev (where the Vite proxy forwards /api → localhost:8060) it
+// defaults to '' so relative paths keep working without any extra setup.
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+
 async function request(url, options = {}) {
     const defaultOptions = {
         headers: {
@@ -10,7 +15,7 @@ async function request(url, options = {}) {
     };
 
     try {
-        const response = await fetch(url, defaultOptions);
+        const response = await fetch(`${API_BASE_URL}${url}`, defaultOptions);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));

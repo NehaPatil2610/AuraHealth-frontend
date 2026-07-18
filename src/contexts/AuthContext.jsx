@@ -1,5 +1,9 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 
+// In production the Vite env var points to the Render backend origin.
+// Locally it falls back to '' so the Vite dev proxy keeps working.
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+
 const AuthContext = createContext()
 
 /**
@@ -25,7 +29,7 @@ export function AuthProvider({ children }) {
     const checkSession = useCallback(async () => {
         setIsLoading(true)
         try {
-            const res = await fetch('/api/auth/me', { credentials: 'include' })
+            const res = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: 'include' })
             if (res.ok) {
                 const data = await res.json()
                 setUser(normalizeUser(data))
@@ -45,7 +49,7 @@ export function AuthProvider({ children }) {
         setIsLoading(true)
         setAuthError(null)
         try {
-            const res = await fetch('/api/auth/login', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -72,7 +76,7 @@ export function AuthProvider({ children }) {
         setIsLoading(true)
         setAuthError(null)
         try {
-            const res = await fetch('/api/auth/register', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -104,7 +108,7 @@ export function AuthProvider({ children }) {
     // ── Logout ─────────────────────────────────────────────────
     const logout = useCallback(async () => {
         try {
-            await fetch('/api/auth/logout', {
+            await fetch(`${API_BASE_URL}/api/auth/logout`, {
                 method: 'POST',
                 credentials: 'include',
             })
@@ -125,10 +129,10 @@ export function AuthProvider({ children }) {
     // backend redirects to Google, handles the callback, sets the HttpOnly
     // JWT cookie, then redirects back to the frontend. checkSession() (run
     // on app mount) then restores the user from that cookie.
-    // Relative path so the Spring Cloud Gateway routes /oauth2/** to the
-    // backend in production; the Vite dev proxy handles it locally.
+    // In production the full Render URL is used so the browser navigates
+    // directly to the backend. Locally the Vite dev proxy handles it.
     const loginWithGoogle = useCallback(() => {
-        window.location.assign('/oauth2/authorization/google')
+        window.location.assign(`${API_BASE_URL}/oauth2/authorization/google`)
     }, [])
 
     const isPatient = user?.role === 'PATIENT'
