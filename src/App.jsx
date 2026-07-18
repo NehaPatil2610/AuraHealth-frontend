@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Component } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -7,6 +7,24 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AuthView from './views/patient/AuthView'
 import LandingPage from './views/LandingPage'
 import DashboardLayout from './layouts/DashboardLayout'
+
+// Catches any render crash and shows the error on-screen instead of a blank page.
+class ErrorBoundary extends Component {
+    constructor(props) { super(props); this.state = { error: null } }
+    static getDerivedStateFromError(error) { return { error } }
+    render() {
+        if (this.state.error) {
+            return (
+                <div style={{ padding: 32, color: '#f87171', fontFamily: 'monospace', background: '#09090b', minHeight: '100vh' }}>
+                    <h2 style={{ color: '#fca5a5' }}>⚠ AuraHealth crashed on startup</h2>
+                    <pre style={{ whiteSpace: 'pre-wrap', marginTop: 16 }}>{this.state.error.toString()}</pre>
+                    <pre style={{ whiteSpace: 'pre-wrap', color: '#6b7280', fontSize: 12, marginTop: 12 }}>{this.state.error.stack}</pre>
+                </div>
+            )
+        }
+        return this.props.children
+    }
+}
 
 function useFavicon() {
     useEffect(() => {
@@ -42,7 +60,14 @@ function AppContainer() {
     // Restore the cookie/JWT session on load. Also the landing point after
     // the Google OAuth redirect-back, where the cookie is already set.
     useEffect(() => {
-        checkSession().finally(() => setBooting(false))
+        // Hard safety timer — guarantees the black screen exits within 10s
+        // even if checkSession's AbortController somehow fails to fire.
+        const safetyTimer = setTimeout(() => setBooting(false), 10000)
+        checkSession().finally(() => {
+            clearTimeout(safetyTimer)
+            setBooting(false)
+        })
+        return () => clearTimeout(safetyTimer)
     }, [checkSession])
 
     if (booting) {
@@ -88,12 +113,14 @@ function AppContainer() {
 
 export default function App() {
     return (
-        <AuthProvider>
-            <ThemeProvider>
-                <NotificationProvider>
-                    <AppContainer />
-                </NotificationProvider>
-            </ThemeProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+            <AuthProvider>
+                <ThemeProvider>
+                    <NotificationProvider>
+                        <AppContainer />
+                    </NotificationProvider>
+                </ThemeProvider>
+            </AuthProvider>
+        </ErrorBoundary>
     )
 }
