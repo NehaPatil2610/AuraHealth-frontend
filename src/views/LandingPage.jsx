@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import {
     ArrowRight, Shield, Calendar, Stethoscope, BarChart3, Clock,
-    Lock, ChevronRight, Star, Zap, Users, Activity, CheckCircle2,
+    Lock, ChevronRight, Star, Zap, Users, CheckCircle2,
     Menu, X, Heart, Globe, Sparkles, Play
 } from 'lucide-react'
 import AuraHealthLogo from '../components/AuraHealthLogo'
@@ -357,16 +357,7 @@ export default function LandingPage({ onSignIn, onGetStarted }) {
 
                 <div className="relative z-10 text-center max-w-5xl mx-auto">
                     {/* Badge */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.2 }}
-                    >
-                        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold tracking-widest uppercase mb-8">
-                            <Activity style={{ width: 14, height: 14 }} />
-                            Precision Care Platform — v2.0 Beta
-                        </span>
-                    </motion.div>
+
 
                     {/* Headline */}
                     <motion.h1
