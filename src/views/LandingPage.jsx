@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import {
     ArrowRight, Shield, Calendar, Stethoscope, BarChart3, Clock,
-    Lock, ChevronRight, Star, Zap, Users, CheckCircle2,
+    Lock, ChevronRight, Star, Zap, Users, Activity, CheckCircle2,
     Menu, X, Heart, Globe, Sparkles, Play
 } from 'lucide-react'
 import AuraHealthLogo from '../components/AuraHealthLogo'
