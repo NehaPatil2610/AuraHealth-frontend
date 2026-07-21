@@ -120,7 +120,7 @@ export const CalendarAppointmentBookingDemo = ({ onConfirm }: { onConfirm?: () =
                     ? 'bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:shadow-[0_8px_25px_rgba(16,185,129,0.4)] hover:-translate-y-0.5' 
                     : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400'
                 }`} 
-                onClick={onConfirm}
+                onClick={() => onConfirm?.(date, selectedTime)}
             >
               Confirm Appointment
             </Button>

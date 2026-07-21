@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../api'
+import { useTheme } from '../../contexts/ThemeContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, Clock, Activity, FileText, ChevronRight, Video, Plus, X, Search, CheckCircle2, UserCircle, CalendarDays, AlertTriangle, Crown, Zap, Star, Heart } from 'lucide-react'
 import { CalendarAppointmentBookingDemo } from '../../components/ui/CalendarAppointmentBookingDemo'
@@ -7,7 +8,7 @@ import PricingCardTwo from '../../components/ui/pricing-card-triple'
 import Footer from '../../components/Footer'
 
 function ModalShell({ isOpen, onClose, title, children }) {
-    const isDark = true
+    const { isDark } = useTheme()
 
     if (!isOpen) return null
 
@@ -40,29 +41,55 @@ function ModalShell({ isOpen, onClose, title, children }) {
     )
 }
 
-function BookAppointmentModal({ isOpen, onClose }) {
+function BookAppointmentModal({ isOpen, onClose, onBooked }) {
+    const { isDark } = useTheme()
     const [step, setStep] = useState(1) 
     const [selectedSpec, setSelectedSpec] = useState(null)
     const [selectedDoc, setSelectedDoc] = useState(null)
-    const [selectedDate, setSelectedDate] = useState(null)
-    const [selectedTime, setSelectedTime] = useState(null)
     const [isBooked, setIsBooked] = useState(false)
+    const [doctors, setDoctors] = useState([])
+    const [bookingError, setBookingError] = useState(null)
 
-    const isDark = true 
+    useEffect(() => {
+        if (isOpen) {
+            api.getDoctors()
+                .then(list => setDoctors(list || []))
+                .catch(() => setDoctors([]))
+        }
+    }, [isOpen])
 
     if (!isOpen) return null
 
-    const handleBook = () => {
-        setIsBooked(true)
-        setTimeout(() => {
-            setIsBooked(false)
-            setStep(1)
-            setSelectedSpec(null)
-            setSelectedDoc(null)
-            setSelectedDate(null)
-            setSelectedTime(null)
-            onClose()
-        }, 2000)
+    const specialties = [...new Set(doctors.filter(d => d.available).map(d => d.specialization).filter(Boolean))]
+    const filteredDoctors = doctors.filter(d => d.available && d.specialization === selectedSpec)
+
+    const handleBook = async (date, selectedTime) => {
+        if (!selectedDoc || !date || !selectedTime) return
+        setBookingError(null)
+        try {
+            const year = date.getFullYear()
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const day = String(date.getDate()).padStart(2, '0')
+            const appointmentTime = `${year}-${month}-${day}T${selectedTime}:00`
+
+            await api.bookAppointment({
+                doctorId: selectedDoc.id,
+                appointmentTime,
+            })
+
+            setIsBooked(true)
+            setTimeout(() => {
+                setIsBooked(false)
+                setStep(1)
+                setSelectedSpec(null)
+                setSelectedDoc(null)
+                setBookingError(null)
+                onBooked?.()
+                onClose()
+            }, 2000)
+        } catch (error) {
+            setBookingError(error.message || 'Failed to book appointment. Please try again.')
+        }
     }
 
     if (isBooked) {
@@ -82,6 +109,12 @@ function BookAppointmentModal({ isOpen, onClose }) {
 
     return (
         <ModalShell isOpen={isOpen} onClose={onClose} title={step === 1 ? 'Select Specialty' : step === 2 ? 'Select Practitioner' : 'Schedule Timing'}>
+            {bookingError && (
+                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
+                    {bookingError}
+                </div>
+            )}
+
             {step === 1 && (
                 <div className="space-y-4">
                     <div className={`relative flex items-center px-4 py-3 rounded-xl border ${isDark ? 'bg-[#09090b] border-[#27272a]' : 'bg-zinc-50 border-zinc-200'}`}>
@@ -89,7 +122,7 @@ function BookAppointmentModal({ isOpen, onClose }) {
                         <input type="text" placeholder="Search Cardiology, Dermatology..." className={`w-full bg-transparent border-none focus:outline-none text-sm ${isDark ? 'text-white placeholder-zinc-600' : 'text-zinc-900 placeholder-zinc-400'}`} />
                     </div>
                     <div className="grid grid-cols-2 gap-3 mt-4">
-                        {['Cardiology', 'Dermatology', 'Neurology', 'Pediatrics'].map(spec => (
+                        {(specialties.length > 0 ? specialties : ['Cardiology', 'Dermatology', 'Neurology', 'Pediatrics']).map(spec => (
                             <button key={spec} onClick={() => { setSelectedSpec(spec); setStep(2); }} className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
                                 isDark ? 'border-[#27272a] bg-[#18181b] hover:border-[#10b981]/50 hover:bg-[#10b981]/10 text-zinc-300' : 'border-zinc-200 bg-white hover:border-emerald-300 hover:bg-emerald-50 text-zinc-700'
                             }`}>
@@ -103,11 +136,13 @@ function BookAppointmentModal({ isOpen, onClose }) {
 
             {step === 2 && (
                 <div className="space-y-3">
-                    <button onClick={() => setStep(1)} className="text-xs text-zinc-500 hover:text-white mb-2 flex items-center gap-1 cursor-pointer transition-colors">
+                    <button onClick={() => setStep(1)} className={`text-xs mb-2 flex items-center gap-1 cursor-pointer transition-colors ${isDark ? 'text-zinc-500 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}>
                         ← Back to Specialties
                     </button>
-                    {['Dr. Sarah Jenkins', 'Dr. Emily Chen', 'Dr. Marcus Hale'].map(doc => (
-                        <div key={doc} onClick={() => { setSelectedDoc(doc); setStep(3); }} className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-colors ${
+                    {filteredDoctors.length === 0 ? (
+                        <p className={`text-sm text-center py-6 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>No available doctors for this specialty.</p>
+                    ) : filteredDoctors.map(doc => (
+                        <div key={doc.id} onClick={() => { setSelectedDoc(doc); setStep(3); }} className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-colors ${
                             isDark ? 'border-[#27272a] bg-[#18181b] hover:border-[#10b981]/50 text-white' : 'border-zinc-200 bg-white hover:border-emerald-300 text-zinc-900'
                         }`}>
                             <div className="flex items-center gap-4">
@@ -115,8 +150,8 @@ function BookAppointmentModal({ isOpen, onClose }) {
                                     <UserCircle style={{ width: 24, height: 24, minWidth: 24, minHeight: 24, flexShrink: 0 }} className="text-[#10b981]" />
                                 </div>
                                 <div>
-                                    <p className="font-bold text-sm">{doc}</p>
-                                    <p className="text-[11px] text-zinc-500">{selectedSpec} Specialist</p>
+                                    <p className="font-bold text-sm">{doc.name}</p>
+                                    <p className="text-[11px] text-zinc-500">{doc.specialization} • {doc.city}</p>
                                 </div>
                             </div>
                             <ChevronRight style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, flexShrink: 0 }} className="text-[#10b981]" />
@@ -127,7 +162,7 @@ function BookAppointmentModal({ isOpen, onClose }) {
 
             {step === 3 && (
                 <div className="space-y-6">
-                    <button onClick={() => setStep(2)} className="text-xs text-zinc-500 hover:text-white mb-2 flex items-center gap-1 cursor-pointer transition-colors">
+                    <button onClick={() => setStep(2)} className={`text-xs mb-2 flex items-center gap-1 cursor-pointer transition-colors ${isDark ? 'text-zinc-500 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}>
                         ← Back to Practitioners
                     </button>
                     <CalendarAppointmentBookingDemo onConfirm={handleBook} />
@@ -138,7 +173,7 @@ function BookAppointmentModal({ isOpen, onClose }) {
 }
 
 function ViewRecordModal({ isOpen, onClose, apt }) {
-    const isDark = true
+    const { isDark } = useTheme()
     return (
         <ModalShell isOpen={isOpen} onClose={onClose} title="Medical Record Overview">
             {apt && (
@@ -177,7 +212,7 @@ function ViewRecordModal({ isOpen, onClose, apt }) {
 }
 
 function RescheduleModal({ isOpen, onClose, apt }) {
-    const isDark = true
+    const { isDark } = useTheme()
     const [rescheduled, setRescheduled] = useState(false)
 
     const handleReschedule = () => {
@@ -222,7 +257,7 @@ function RescheduleModal({ isOpen, onClose, apt }) {
 }
 
 function BillingModal({ isOpen, onClose, selectedPlan, onActivate }) {
-    const isDark = true
+    const { isDark } = useTheme()
     if (!isOpen) return null
 
     return (
@@ -251,7 +286,7 @@ function BillingModal({ isOpen, onClose, selectedPlan, onActivate }) {
 }
 
 export default function PatientWorkspace() {
-    const isDark = true // global state applied to body
+    const { isDark } = useTheme()
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
     const [activeRecordApt, setActiveRecordApt] = useState(null)
     const [activeRescheduleApt, setActiveRescheduleApt] = useState(null)
@@ -273,28 +308,28 @@ export default function PatientWorkspace() {
     const [isLoading, setIsLoading] = useState(true)
     const [isSlowLoad, setIsSlowLoad] = useState(false)
 
-    useEffect(() => {
-        let isMounted = true
-        const timer = setTimeout(() => {
-            if (isMounted) setIsSlowLoad(true)
-        }, 5000)
+    const fetchData = useCallback(() => {
+        setIsLoading(true)
+        setIsSlowLoad(false)
+        const timer = setTimeout(() => setIsSlowLoad(true), 5000)
 
         Promise.all([
             api.getMyAppointments().catch(() => []),
             api.getMyRecords().catch(() => [])
         ]).then(([apts, recs]) => {
-            if (!isMounted) return
             setUpcomingAppointments(apts || [])
             setRecentRecords(recs || [])
             setIsLoading(false)
             clearTimeout(timer)
         })
 
-        return () => {
-            isMounted = false
-            clearTimeout(timer)
-        }
+        return () => clearTimeout(timer)
     }, [])
+
+    useEffect(() => {
+        const cleanup = fetchData()
+        return cleanup
+    }, [fetchData])
 
     const handleRecordClick = async (record) => {
         try {
@@ -313,7 +348,7 @@ export default function PatientWorkspace() {
 
     return (
         <div className="flex flex-col min-h-[calc(100vh-100px)] space-y-8">
-            <BookAppointmentModal isOpen={isBookingModalOpen} onClose={() => setIsBookingModalOpen(false)} />
+            <BookAppointmentModal isOpen={isBookingModalOpen} onClose={() => setIsBookingModalOpen(false)} onBooked={fetchData} />
             <ViewRecordModal isOpen={!!activeRecordApt} onClose={() => setActiveRecordApt(null)} apt={activeRecordApt} />
             <RescheduleModal isOpen={!!activeRescheduleApt} onClose={() => setActiveRescheduleApt(null)} apt={activeRescheduleApt} />
             <BillingModal isOpen={!!billingPlan} onClose={() => setBillingPlan(null)} selectedPlan={billingPlan} onActivate={handleActivatePlan} />
@@ -357,10 +392,10 @@ export default function PatientWorkspace() {
                                 {[1, 2].map(i => (
                                     <div key={i} className={`p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isDark ? 'bg-black/20 border-white/10' : 'bg-white/80 border-zinc-200'}`}>
                                         <div className="flex items-center gap-4">
-                                            <div className="h-12 w-12 rounded-full bg-zinc-800 animate-pulse"></div>
+                                            <div className={`h-12 w-12 rounded-full animate-pulse ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}></div>
                                             <div className="space-y-2">
-                                                <div className="h-4 w-32 bg-zinc-800 rounded animate-pulse"></div>
-                                                <div className="h-3 w-20 bg-zinc-800 rounded animate-pulse"></div>
+                                                <div className={`h-4 w-32 rounded animate-pulse ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}></div>
+                                                <div className={`h-3 w-20 rounded animate-pulse ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}></div>
                                             </div>
                                         </div>
                                     </div>
@@ -450,10 +485,10 @@ export default function PatientWorkspace() {
                                 <div className="space-y-3">
                                     {[1, 2].map(i => (
                                         <div key={i} className="flex items-center gap-3 p-3">
-                                            <div className="h-10 w-10 bg-zinc-800 rounded-lg animate-pulse"></div>
+                                            <div className={`h-10 w-10 rounded-lg animate-pulse ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}></div>
                                             <div className="space-y-2">
-                                                <div className="h-4 w-24 bg-zinc-800 rounded animate-pulse"></div>
-                                                <div className="h-3 w-16 bg-zinc-800 rounded animate-pulse"></div>
+                                                <div className={`h-4 w-24 rounded animate-pulse ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}></div>
+                                                <div className={`h-3 w-16 rounded animate-pulse ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}></div>
                                             </div>
                                         </div>
                                     ))}
