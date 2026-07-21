@@ -8,7 +8,7 @@ import { Calendar } from './calendar'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './card'
 import { ScrollArea } from './scroll-area'
 
-export const CalendarAppointmentBookingDemo = ({ onConfirm }: { onConfirm?: () => void }) => {
+export const CalendarAppointmentBookingDemo = ({ onConfirm }: { onConfirm?: (date: Date | undefined, selectedTime: string | null) => void }) => {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [selectedTime, setSelectedTime] = useState<string | null>('10:00')
 
@@ -52,9 +52,10 @@ export const CalendarAppointmentBookingDemo = ({ onConfirm }: { onConfirm?: () =
               }}
               className='bg-transparent p-0 [--cell-size:--spacing(12)]'
               classNames={{
-                day_selected: "bg-[#10b981] text-white hover:bg-[#10b981]/90 hover:text-white focus:bg-[#10b981] focus:text-white rounded-full shadow-[0_0_15px_rgba(16,185,129,0.4)]",
-                day_today: "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-full",
+                selected: "bg-[#10b981] text-white hover:bg-[#10b981]/90 hover:text-white focus:bg-[#10b981] focus:text-white rounded-full shadow-[0_0_15px_rgba(16,185,129,0.4)]",
+                today: "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-full",
                 day: "h-10 w-10 p-0 font-normal aria-selected:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-full transition-all duration-200",
+                disabled: "opacity-30 cursor-not-allowed pointer-events-none",
               }}
               formatters={{
                 formatWeekdayName: date => {

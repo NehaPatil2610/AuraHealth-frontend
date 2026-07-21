@@ -45,18 +45,21 @@ function Calendar({
     week_number: "size-9 p-0 text-xs font-medium text-muted-foreground/80",
   };
 
-  const mergedClassNames: typeof defaultClassNames = Object.keys(defaultClassNames).reduce(
-    (acc, key) => ({
-      ...acc,
-      [key]: classNames?.[key as keyof typeof classNames]
-        ? cn(
-            defaultClassNames[key as keyof typeof defaultClassNames],
-            classNames[key as keyof typeof classNames],
-          )
-        : defaultClassNames[key as keyof typeof defaultClassNames],
-    }),
-    {} as typeof defaultClassNames,
-  );
+  const allKeys = new Set([
+    ...Object.keys(defaultClassNames),
+    ...Object.keys(classNames ?? {}),
+  ]);
+
+  const mergedClassNames = {} as Record<string, string>;
+  for (const key of allKeys) {
+    const defaultVal = defaultClassNames[key as keyof typeof defaultClassNames];
+    const consumerVal = classNames?.[key as keyof typeof classNames] as string | undefined;
+    if (defaultVal && consumerVal) {
+      mergedClassNames[key] = cn(defaultVal, consumerVal);
+    } else {
+      mergedClassNames[key] = (consumerVal || defaultVal) as string;
+    }
+  }
 
   const defaultComponents = {
     Chevron: (props: any) => {
