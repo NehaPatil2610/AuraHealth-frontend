@@ -48,7 +48,7 @@ export default function HoverGradientNavBar({ menuItems }: { menuItems: HoverGra
         className="w-full md:w-fit mx-auto px-2 md:px-4 py-2 md:py-3 rounded-none md:rounded-3xl 
         bg-white/90 dark:bg-[#09090b]/80 backdrop-blur-lg 
         border border-zinc-200/80 dark:border-[#27272a]/80 
-        shadow-lg md:shadow-xl relative overflow-x-auto no-scrollbar"
+        shadow-lg md:shadow-xl relative overflow-visible"
         initial="initial"
         whileHover="hover"
       >

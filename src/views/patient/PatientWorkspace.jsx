@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { api } from '../../api'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, Clock, Activity, FileText, ChevronRight, Video, Plus, X, Search, CheckCircle2, UserCircle, CalendarDays, AlertTriangle, Crown, Zap, Star, Heart } from 'lucide-react'
 import { CalendarAppointmentBookingDemo } from '../../components/ui/CalendarAppointmentBookingDemo'
@@ -143,19 +144,31 @@ function ViewRecordModal({ isOpen, onClose, apt }) {
             {apt && (
                 <div className="space-y-4">
                     <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#09090b] border-[#27272a]' : 'bg-zinc-50 border-zinc-200'}`}>
-                        <h4 className="text-sm font-bold text-white mb-1">Consultation with {apt.doctor}</h4>
-                        <p className="text-xs text-zinc-400 mb-4">{apt.specialty} • {apt.time}</p>
-                        
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between p-3 bg-[#18181b] border border-[#27272a] rounded-lg">
-                                <span className="text-xs text-zinc-300 flex items-center gap-2"><FileText style={{width:14, height:14, flexShrink:0}} className="text-[#10b981]" /> Clinical Notes</span>
-                                <button className="text-[10px] bg-[#10b981]/10 text-[#10b981] px-2 py-1 rounded font-bold cursor-pointer hover:bg-[#10b981]/20 transition-colors">Download</button>
-                            </div>
-                            <div className="flex items-center justify-between p-3 bg-[#18181b] border border-[#27272a] rounded-lg">
-                                <span className="text-xs text-zinc-300 flex items-center gap-2"><Activity style={{width:14, height:14, flexShrink:0}} className="text-[#10b981]" /> Vitals Log</span>
-                                <button className="text-[10px] bg-[#10b981]/10 text-[#10b981] px-2 py-1 rounded font-bold cursor-pointer hover:bg-[#10b981]/20 transition-colors">View</button>
-                            </div>
-                        </div>
+                        {apt.isRecord ? (
+                            <>
+                                <h4 className="text-sm font-bold text-white mb-1">{apt.title}</h4>
+                                <p className="text-xs text-zinc-400 mb-4">{apt.specialty} • {apt.time}</p>
+                                <div className="p-4 bg-[#18181b] border border-[#27272a] rounded-lg text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                                    {apt.content}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <h4 className="text-sm font-bold text-white mb-1">Consultation with {apt.doctorName || apt.doctor}</h4>
+                                <p className="text-xs text-zinc-400 mb-4">{apt.doctorSpecialty || apt.specialty} • {apt.appointmentTime ? new Date(apt.appointmentTime).toLocaleString() : apt.time}</p>
+                                
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between p-3 bg-[#18181b] border border-[#27272a] rounded-lg">
+                                        <span className="text-xs text-zinc-300 flex items-center gap-2"><FileText style={{width:14, height:14, flexShrink:0}} className="text-[#10b981]" /> Clinical Notes</span>
+                                        <button className="text-[10px] bg-[#10b981]/10 text-[#10b981] px-2 py-1 rounded font-bold cursor-pointer hover:bg-[#10b981]/20 transition-colors">Download</button>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-[#18181b] border border-[#27272a] rounded-lg">
+                                        <span className="text-xs text-zinc-300 flex items-center gap-2"><Activity style={{width:14, height:14, flexShrink:0}} className="text-[#10b981]" /> Vitals Log</span>
+                                        <button className="text-[10px] bg-[#10b981]/10 text-[#10b981] px-2 py-1 rounded font-bold cursor-pointer hover:bg-[#10b981]/20 transition-colors">View</button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
@@ -255,10 +268,48 @@ export default function PatientWorkspace() {
         setBillingPlan(null)
     }
 
-    const upcomingAppointments = [
-        { id: 1, doctor: 'Dr. Sarah Jenkins', specialty: 'Cardiology', time: 'Today, 2:30 PM', type: 'Video Consult' },
-        { id: 2, doctor: 'Dr. Emily Chen', specialty: 'Dermatology', time: 'Tomorrow, 10:00 AM', type: 'In-Person' },
-    ]
+    const [upcomingAppointments, setUpcomingAppointments] = useState([])
+    const [recentRecords, setRecentRecords] = useState([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [isSlowLoad, setIsSlowLoad] = useState(false)
+
+    useEffect(() => {
+        let isMounted = true
+        const timer = setTimeout(() => {
+            if (isMounted) setIsSlowLoad(true)
+        }, 5000)
+
+        Promise.all([
+            api.getMyAppointments().catch(() => []),
+            api.getMyRecords().catch(() => [])
+        ]).then(([apts, recs]) => {
+            if (!isMounted) return
+            setUpcomingAppointments(apts || [])
+            setRecentRecords(recs || [])
+            setIsLoading(false)
+            clearTimeout(timer)
+        })
+
+        return () => {
+            isMounted = false
+            clearTimeout(timer)
+        }
+    }, [])
+
+    const handleRecordClick = async (record) => {
+        try {
+            const fullRecord = await api.getRecord(record.id)
+            setActiveRecordApt({
+                title: fullRecord.title,
+                specialty: fullRecord.recordType,
+                time: fullRecord.recordDate,
+                content: fullRecord.content,
+                isRecord: true
+            })
+        } catch (e) {
+            console.error('Error fetching record', e)
+        }
+    }
 
     return (
         <div className="flex flex-col min-h-[calc(100vh-100px)] space-y-8">
@@ -301,7 +352,29 @@ export default function PatientWorkspace() {
                         Upcoming Appointments
                     </h3>
                     <div className="space-y-4">
-                        {upcomingAppointments.map((apt) => (
+                        {isLoading ? (
+                            <div className="space-y-4">
+                                {[1, 2].map(i => (
+                                    <div key={i} className={`p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isDark ? 'bg-black/20 border-white/10' : 'bg-white/80 border-zinc-200'}`}>
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-12 w-12 rounded-full bg-zinc-800 animate-pulse"></div>
+                                            <div className="space-y-2">
+                                                <div className="h-4 w-32 bg-zinc-800 rounded animate-pulse"></div>
+                                                <div className="h-3 w-20 bg-zinc-800 rounded animate-pulse"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {isSlowLoad && <p className="text-xs text-amber-500 animate-pulse mt-2">Waking up the server, this may take a minute...</p>}
+                            </div>
+                        ) : upcomingAppointments.length === 0 ? (
+                            <div className={`p-8 text-center rounded-2xl border ${isDark ? 'bg-black/20 border-white/10' : 'bg-white/80 border-zinc-200'}`}>
+                                <Calendar style={{ width: 32, height: 32 }} className="mx-auto text-zinc-500 mb-3" />
+                                <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>No Upcoming Appointments</h4>
+                                <p className={`text-sm mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Book your first consultation to get started.</p>
+                                <button onClick={() => setIsBookingModalOpen(true)} className="mt-4 px-4 py-2 bg-[#10b981] hover:bg-emerald-400 text-white rounded-lg text-sm font-bold transition-colors cursor-pointer">Book Now</button>
+                            </div>
+                        ) : upcomingAppointments.map((apt) => (
                             <motion.div
                                 key={apt.id}
                                 className={`p-5 rounded-2xl border ring-1 ring-black/5 dark:ring-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${
@@ -315,16 +388,16 @@ export default function PatientWorkspace() {
                                         <span className="text-[#10b981] font-bold text-sm">DR</span>
                                     </div>
                                     <div>
-                                        <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>{apt.doctor}</h4>
+                                        <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>{apt.doctorName || apt.doctor}</h4>
                                         <span className="bg-zinc-800/40 text-zinc-400 border border-zinc-700/30 text-[11px] px-2 py-0.5 rounded-md inline-block mt-1">
-                                            {apt.specialty}
+                                            {apt.doctorSpecialty || apt.specialty}
                                         </span>
                                     </div>
                                 </div>
                                 <div className={`flex flex-col items-start gap-1 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
                                     <div className="flex items-center gap-1.5 text-sm font-bold">
                                         <Calendar style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, flexShrink: 0 }} className="text-[#10b981]" />
-                                        {apt.time}
+                                        {apt.appointmentTime ? new Date(apt.appointmentTime).toLocaleString() : apt.time}
                                     </div>
                                     <div className="flex items-center text-xs font-semibold mt-1">
                                         {apt.type === 'Video Consult' ? (
@@ -373,11 +446,24 @@ export default function PatientWorkspace() {
                             </h3>
                         </div>
                         <div className="space-y-4">
-                            {[
-                                { title: 'Blood Test Results', date: 'Oct 12, 2025' },
-                                { title: 'Prescription Renewal', date: 'Sep 28, 2025' },
-                            ].map((record, idx) => (
-                                <div key={idx} className="flex items-center justify-between group cursor-pointer border border-transparent hover:border-[#27272a] p-3 -mx-3 rounded-xl transition-all">
+                            {isLoading ? (
+                                <div className="space-y-3">
+                                    {[1, 2].map(i => (
+                                        <div key={i} className="flex items-center gap-3 p-3">
+                                            <div className="h-10 w-10 bg-zinc-800 rounded-lg animate-pulse"></div>
+                                            <div className="space-y-2">
+                                                <div className="h-4 w-24 bg-zinc-800 rounded animate-pulse"></div>
+                                                <div className="h-3 w-16 bg-zinc-800 rounded animate-pulse"></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : recentRecords.length === 0 ? (
+                                <div className="py-6 text-center">
+                                    <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>No medical records yet.</p>
+                                </div>
+                            ) : recentRecords.map((record, idx) => (
+                                <div key={idx} onClick={() => handleRecordClick(record)} className="flex items-center justify-between group cursor-pointer border border-transparent hover:border-[#27272a] p-3 -mx-3 rounded-xl transition-all">
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2 rounded-lg ${isDark ? 'bg-[#09090b] border border-[#27272a] text-[#10b981]' : 'bg-emerald-50 text-emerald-600'}`}>
                                             <Activity style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, flexShrink: 0 }} />
@@ -386,7 +472,7 @@ export default function PatientWorkspace() {
                                             <p className={`text-sm font-semibold transition-colors ${
                                                 isDark ? 'text-zinc-300 group-hover:text-[#10b981]' : 'text-zinc-700 group-hover:text-emerald-600'
                                             }`}>{record.title}</p>
-                                            <p className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{record.date}</p>
+                                            <p className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{record.recordDate || record.date}</p>
                                         </div>
                                     </div>
                                     <ChevronRight style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, flexShrink: 0 }} className={`transition-transform group-hover:translate-x-1 ${

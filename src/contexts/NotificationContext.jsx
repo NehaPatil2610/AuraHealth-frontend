@@ -1,41 +1,40 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
+import { api } from '../api'
+import { useAuth } from './AuthContext'
 
 const NotificationContext = createContext()
 
-// ── Mock notification seed data ────────────────────────────────
-const INITIAL_NOTIFICATIONS = [
-    {
-        id: 'n-001',
-        type: 'appointment_requested',
-        title: 'New Appointment Request',
-        message: 'Patient Riya Sharma has requested a slot for July 15, 10:30 AM.',
-        timestamp: Date.now() - 120_000,
-        read: false,
-    },
-    {
-        id: 'n-002',
-        type: 'appointment_confirmed',
-        title: 'Appointment Confirmed',
-        message: 'Your appointment with Dr. Marcus Hale has been confirmed for July 16, 2:00 PM.',
-        timestamp: Date.now() - 600_000,
-        read: false,
-    },
-    {
-        id: 'n-003',
-        type: 'feedback_received',
-        title: 'New Feedback',
-        message: 'You received a 5-star review from patient Alex Morgan.',
-        timestamp: Date.now() - 3_600_000,
-        read: true,
-    },
-]
-
 export function NotificationProvider({ children }) {
-    const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS)
+    const { user } = useAuth()
+    const [notifications, setNotifications] = useState([])
+    const [unreadCount, setUnreadCount] = useState(0)
     const [toasts, setToasts] = useState([])
     const toastIdRef = useRef(0)
 
-    const unreadCount = notifications.filter(n => !n.read).length
+    const fetchNotifications = useCallback(async () => {
+        if (!user) return
+        try {
+            const data = await api.getNotifications()
+            if (data && data.notifications) {
+                const mapped = data.notifications.map(n => ({
+                    ...n,
+                    timestamp: new Date(n.createdAt).getTime()
+                }))
+                setNotifications(mapped)
+                setUnreadCount(data.unreadCount || 0)
+            }
+        } catch (error) {
+            console.error('Failed to fetch notifications', error)
+        }
+    }, [user])
+
+    useEffect(() => {
+        fetchNotifications()
+        if (user) {
+            const interval = setInterval(fetchNotifications, 60_000)
+            return () => clearInterval(interval)
+        }
+    }, [fetchNotifications, user])
 
     const pushNotification = useCallback((notification) => {
         const id = `n-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
@@ -46,6 +45,7 @@ export function NotificationProvider({ children }) {
             ...notification,
         }
         setNotifications(prev => [newNotif, ...prev])
+        setUnreadCount(prev => prev + 1)
 
         // Show toast
         const toastId = ++toastIdRef.current
@@ -55,34 +55,40 @@ export function NotificationProvider({ children }) {
         }, 4000)
     }, [])
 
-    const markAsRead = useCallback((id) => {
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, read: true } : n)
-        )
+    const markAsRead = useCallback(async (id) => {
+        try {
+            // Only call API if it's a real backend ID (numbers), not local mock IDs (n-...)
+            if (typeof id === 'number' || !String(id).startsWith('n-')) {
+                await api.markNotificationRead(id)
+            }
+            setNotifications(prev =>
+                prev.map(n => n.id === id ? { ...n, read: true } : n)
+            )
+            setUnreadCount(prev => Math.max(0, prev - 1))
+        } catch (error) {
+            console.error('Failed to mark notification as read', error)
+        }
     }, [])
 
-    const markAllRead = useCallback(() => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    const markAllRead = useCallback(async () => {
+        try {
+            await api.markAllNotificationsRead()
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+            setUnreadCount(0)
+        } catch (error) {
+            console.error('Failed to mark all notifications as read', error)
+        }
     }, [])
 
     const clearNotification = useCallback((id) => {
-        setNotifications(prev => prev.filter(n => n.id !== id))
+        setNotifications(prev => {
+            const notif = prev.find(n => n.id === id)
+            if (notif && !notif.read) {
+                setUnreadCount(c => Math.max(0, c - 1))
+            }
+            return prev.filter(n => n.id !== id)
+        })
     }, [])
-
-    // ── Simulate incoming notifications every 45 seconds ───────
-    useEffect(() => {
-        const mockEvents = [
-            { type: 'appointment_requested', title: 'Appointment Requested', message: 'Patient Meera Kapoor wants a slot on July 18, 9:00 AM.' },
-            { type: 'appointment_confirmed', title: 'Slot Confirmed', message: 'Dr. Priya Nair confirmed your July 17 session.' },
-            { type: 'appointment_cancelled', title: 'Cancellation Notice', message: 'Patient John Lee cancelled their July 19 appointment.' },
-        ]
-        let idx = 0
-        const interval = setInterval(() => {
-            pushNotification(mockEvents[idx % mockEvents.length])
-            idx++
-        }, 45_000)
-        return () => clearInterval(interval)
-    }, [pushNotification])
 
     return (
         <NotificationContext.Provider value={{

@@ -93,9 +93,16 @@ export const api = {
         method: 'DELETE',
     }),
 
+    // ── Medical Record Endpoints ────────────────────────────
+    getMyRecords: () => request('/api/records/mine'),
+    getRecord: (id) => request(`/api/records/${id}`),
+
     // ── Notification Endpoints ──────────────────────────────
     getNotifications: () => request('/api/notifications'),
     markNotificationRead: (id) => request(`/api/notifications/${id}/read`, {
+        method: 'PUT',
+    }),
+    markAllNotificationsRead: () => request('/api/notifications/read-all', {
         method: 'PUT',
     }),
 };
