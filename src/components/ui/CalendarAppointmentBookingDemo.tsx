@@ -42,7 +42,7 @@ export const CalendarAppointmentBookingDemo = ({ onConfirm }: { onConfirm?: () =
               selected={date}
               onSelect={setDate}
               defaultMonth={date}
-              disabled={bookedDates}
+              disabled={[{ before: new Date(new Date().setHours(0, 0, 0, 0)) }, ...bookedDates]}
               showOutsideDays={false}
               modifiers={{
                 booked: bookedDates

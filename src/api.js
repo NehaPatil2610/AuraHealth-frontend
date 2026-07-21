@@ -72,7 +72,7 @@ export const api = {
             method: 'POST',
         });
     },
-    getMyAppointments: () => request('/api/appointments/mine'),
+    getMyAppointments: () => request(`/api/appointments/mine?t=${Date.now()}`),
     cancelAppointment: (id) => request(`/api/appointments/${id}/cancel`, {
         method: 'PUT',
     }),
