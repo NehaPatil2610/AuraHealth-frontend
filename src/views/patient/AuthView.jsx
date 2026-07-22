@@ -24,10 +24,10 @@ export default function AuthView({ initialMode = 'signin', onBackToLanding }) {
         setIsLoading(false)
     }
 
-    const handleRegister = async (name, email, password, role) => {
+    const handleRegister = async (name, email, password, role, licenseId, specialty) => {
         setIsLoading(true)
         setAuthError(null)
-        await credentialRegister({ name, email, password, role })
+        await credentialRegister({ name, email, password, role, licenseId, specialty })
         setIsLoading(false)
     }
 

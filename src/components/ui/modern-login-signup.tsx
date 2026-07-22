@@ -8,7 +8,7 @@ export interface ModernAuthProps {
   authError?: string | null;
   onBackToLanding?: () => void;
   onLogin?: (email: string, password: string) => void;
-  onRegister?: (name: string, email: string, password: string, role: string) => void;
+  onRegister?: (name: string, email: string, password: string, role: string, licenseId?: string, specialty?: string) => void;
   onGoogleLogin?: () => void;
   onSwitchMode?: (mode: 'signin' | 'signup') => void;
 }
@@ -26,13 +26,13 @@ export default function ModernAuth({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLogin, setIsLogin] = useState(initialMode === 'signin');
   const [selectedRole, setSelectedRole] = useState('PATIENT');
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', licenseId: '', specialty: '' });
 
   useEffect(() => {
     setIsLogin(initialMode === 'signin');
   }, [initialMode]);
 
-  const updateField = (e: React.ChangeEvent<HTMLInputElement>) => 
+  const updateField = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => 
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,7 +41,7 @@ export default function ModernAuth({
     if (isLogin) {
       onLogin?.(formData.email, formData.password);
     } else {
-      onRegister?.(formData.name, formData.email, formData.password, selectedRole.toLowerCase());
+      onRegister?.(formData.name, formData.email, formData.password, selectedRole.toLowerCase(), formData.licenseId, formData.specialty);
     }
   };
 
@@ -318,6 +318,27 @@ export default function ModernAuth({
           <form onSubmit={handleSubmit} style={{width:"100%",display:"flex",flexDirection:"column",gap:"0.65rem"}}>
             {!isLogin && (
               <input style={input} type="text" name="name" placeholder="Full Name" value={formData.name} onChange={updateField} required disabled={isLoading} />
+            )}
+            {!isLogin && selectedRole === 'DOCTOR' && (
+              <>
+                <input style={input} type="text" name="licenseId" placeholder="Medical License ID" value={formData.licenseId} onChange={updateField} required disabled={isLoading} />
+                <select style={input} name="specialty" value={formData.specialty} onChange={updateField} required disabled={isLoading}>
+                  <option value="" disabled>Select Specialty</option>
+                  <option value="Cardiology">Cardiology</option>
+                  <option value="Dermatology">Dermatology</option>
+                  <option value="Neurology">Neurology</option>
+                  <option value="Orthopedics">Orthopedics</option>
+                  <option value="Psychiatry">Psychiatry</option>
+                  <option value="General Medicine">General Medicine</option>
+                  <option value="Pediatrics">Pediatrics</option>
+                  <option value="Oncology">Oncology</option>
+                  <option value="Endocrinology">Endocrinology</option>
+                  <option value="Ophthalmology">Ophthalmology</option>
+                  <option value="Gynecology">Gynecology</option>
+                  <option value="Pulmonology">Pulmonology</option>
+                  <option value="Other">Other</option>
+                </select>
+              </>
             )}
             <input style={input} type="email" name="email" placeholder="name@work-email.com" value={formData.email} onChange={updateField} required disabled={isLoading} />
             <input style={input} type="password" name="password" placeholder="Password" value={formData.password} onChange={updateField} required disabled={isLoading} />
