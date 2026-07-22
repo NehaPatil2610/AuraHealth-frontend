@@ -1,4 +1,4 @@
-# 🩺 AuraHealth — Precision Care Platform (V2.0-Beta)
+# 🩺 AuraHealth — Precision Care Platform 
 
 AuraHealth is a premium, cinematic clinical management ecosystem. Designed for the modern era, it provides a seamless, ultra-responsive interface for patients and healthcare providers to manage appointments, access medical records, and oversee clinical practice with total data privacy.
 
