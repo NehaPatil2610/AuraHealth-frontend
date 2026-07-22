@@ -76,12 +76,14 @@ export const api = {
     cancelAppointment: (id) => request(`/api/appointments/${id}/cancel`, {
         method: 'PUT',
     }),
-    rescheduleAppointment: (id, params) => {
-        const queryParams = new URLSearchParams(params).toString();
-        return request(`/api/appointments/${id}/reschedule?${queryParams}`, {
+    rescheduleAppointment: (id, newTime) => {
+        return request(`/api/appointments/${id}/time?newTime=${encodeURIComponent(newTime)}`, {
             method: 'PUT',
         });
     },
+    updateAppointmentStatus: (id, status) => request(`/api/appointments/${id}/status?status=${status}`, { method: 'PUT' }),
+    markDayComplete: () => request(`/api/appointments/today/complete`, { method: 'PUT' }),
+    createInvoice: (appointmentId, amount, description) => request(`/api/billing/invoice?appointmentId=${appointmentId}&amount=${amount}&description=${encodeURIComponent(description || '')}`, { method: 'POST' }),
 
     // ── Feedback Endpoints ──────────────────────────────────
     submitFeedback: (data) => request('/api/feedback', {
@@ -96,6 +98,7 @@ export const api = {
     // ── Medical Record Endpoints ────────────────────────────
     getMyRecords: () => request('/api/records/mine'),
     getRecord: (id) => request(`/api/records/${id}`),
+    getPatientRecords: (patientId) => request(`/api/records/patient/${patientId}`),
 
     // ── Notification Endpoints ──────────────────────────────
     getNotifications: () => request('/api/notifications'),
